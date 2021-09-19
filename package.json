@@ -1,0 +1,31 @@
+{
+  "name": "gmap-scraper",
+  "version": "1.0.0",
+  "description": "Scrap Google Map search results using Node.js + Electron",
+  "main": "index.js",
+  "scripts": {
+    "babel_build": "babel --source-maps --out-dir=babel-output src",
+    "copy-babel-output": "node import-babel-scripts.js",
+    "start": "npm run babel_build & npm run copy-babel-output & electron .",
+    "start_dev": "babel-node --presets env,stage-3 src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dist": "npm run babel_build & npm run copy-babel-output & build"
+  },
+  "author": "Hendro Wibowo",
+  "license": "ISC",
+  "dependencies": {
+    "jquery": "^3.6.0",
+    "puppeteer-core": "^10.2.0",
+    "puppeteer-in-electron": "^3.0.5",
+    "xlsx": "^0.17.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-stage-3": "^6.24.1",
+    "babel-watch": "^2.0.7",
+    "electron": "^14.0.1",
+    "electron-builder": "^22.11.7"
+  }
+}

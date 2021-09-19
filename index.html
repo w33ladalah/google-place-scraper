@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <!-- <meta http-equiv="Content-Security-Policy" content="script-src 'self';"> -->
+
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <title>GMap Scraper</title>
+        <!-- Favicon-->
+        <link rel="icon" type="image/x-icon" href="dist/assets/favicon.ico" />
+        <!-- Core theme CSS (includes Bootstrap)-->
+        <link href="dist/css/styles.css" rel="stylesheet" />
+        <style>
+        * {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            outline: none;
+        }
+
+        html,
+        body,
+        #webview {
+            width: 100%;
+            height: 100%;
+        }
+        </style>
+    </head>
+    <body>
+        <!-- Responsive navbar-->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">GMap Scrapper</a>
+                <!-- <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button> -->
+                <!-- <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                        <li class="nav-item"><a class="nav-link active" aria-current="page" href="#">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#">Link</a></li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Dropdown</a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="#">Action</a></li>
+                                <li><a class="dropdown-item" href="#">Another action</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><a class="dropdown-item" href="#">Something else here</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div> -->
+            </div>
+        </nav>
+        <!-- Page content-->
+        <div class="container-fluid" style="height: 85%;">
+            <div class="row">
+                <div class="col-12">
+                    <div class="row">
+                        <div class="col-12 pt-3">
+                            <form class="row g-3" id="searchBusinessForm">
+                                <div class="col-3">
+                                    <label for="searchBusiness" class="visually-hidden">Cari</label>
+                                    <input type="text" class="form-control" id="searchBusiness" placeholder='"Toko bunga di Bogor"' value="Toko bunga di Bogor">
+                                </div>
+                                <div class="col-auto">
+                                    <button type="submit" id="searchBtn" class="btn btn-success mb-3">Cari</button>
+                                    <button type="reset" id="clearBtn" class="btn btn-default border mb-3">Clear</button>
+                                    <button type="button" id="stopBtn" disabled class="btn btn-danger mb-3">Stop</button>
+                                    <button type="button" id="restartBtn" disabled class="btn btn-info mb-3">Restart</button>
+                                    <button type="button" id="exportBtn" class="btn btn-primary mb-3">Export ke Excel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr class="mt-0">
+            <div class="row">
+                <div class="col-5">
+                    <div class="row" style="height: 780px">
+                        <div class="col-12">
+                            <webview style="min-height: 100%;" class="border" id="gmapWv" autosize="on" src="https://www.google.com/maps" data-home="https://www.google.com/maps" useragent="Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) like Gecko"></webview>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-7" style="overflow-y: scroll; font-size: 0.7rem; height: 780px" id="resultsTableContainer">
+                    <table class="table table-bordered border-default" id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Business Name</th>
+                                <th scope="col">Alamat</th>
+                                <th scope="col">No Telp</th>
+                                <th scope="col">Website</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Rating</th>
+                                <th scope="col">Review</th>
+                                <th scope="col">Lat</th>
+                                <th scope="col">Long</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <!-- <th scope="row">1</th> -->
+                                <td class="text-center" colspan="10">Hasil pencarian kosong</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <hr>
+            <div class="row mt-2 bg-default">
+                <div class="col-12">
+                    <p id="statusText">Ditemukan: <span id="resultCountText">0</span> hasil. Status: <span id="statusTxt" class="text-success">Ready</span></p>
+                </div>
+            </div>
+        </div>
+        <script>
+require('./babel-output/config.js');
+require('./babel-output/gmap.js');
+require('./babel-output/index.js');
+require('./babel-output/lib/file-paths.js');
+require('./babel-output/lib/logger.js');
+require('./babel-output/lib/puppeteer-wrapper.js');
+</script>
+    </body>
+</html>

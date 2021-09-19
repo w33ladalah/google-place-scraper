@@ -1,0 +1,1 @@
+{"version":3,"sources":["../src/config.js"],"names":["APP_NAME","APP_VERSION"],"mappings":";;;;;AAAA,MAAMA,WAAW,eAAjB;AACA,MAAMC,cAAc,OAApB;;QAGCD,Q,GAAAA,Q;QACAC,W,GAAAA,W","file":"config.js","sourcesContent":["const APP_NAME = \"GMap Scrapper\";\nconst APP_VERSION = \"1.0.0\";\n\nexport {\n\tAPP_NAME,\n\tAPP_VERSION\n};\n"]}
