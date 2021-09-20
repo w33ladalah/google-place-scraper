@@ -1,7 +1,10 @@
 const electron = require('electron');
+const XLSX = require('xlsx');
 
 // Module to control application life.
 const app = electron.app;
+const ipcMain = electron.ipcMain;
+
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow;
 
@@ -79,3 +82,18 @@ app.on('activate', function () {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+const dialog = electron.dialog;
+const EXTENSIONS = "xls|xlsx|xlsm|xlsb|xml|csv|txt|dif|sylk|slk|prn|ods|fods|htm|html".split("|");
+ipcMain.on('export-to-xlsx', function(evt, data){
+	const wb = XLSX.utils.table_to_book(data);
+	const o = dialog.showSaveDialogSync({
+		title: 'Save file as',
+		filters: [{
+			name: "Spreadsheets",
+			extensions: EXTENSIONS
+		}]
+	});
+	console.log(o.filePath);
+	XLSX.writeFile(wb, o.filePath);
+	dialog.showMessageBox({ message: "Exported data to " + o.filePath, buttons: ["OK"] });
+});

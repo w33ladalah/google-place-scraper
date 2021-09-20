@@ -13,6 +13,8 @@ const filesToAdd = getFolderFiles(babelOutputDirectory)
     .map(f => f.replace(/\\/g, '\/'))
     .map(f => `require('${f}');`);
 
+    console.log(filesToAdd);
+
 let input = fs.readFileSync(htmlFile, "utf8");//.replace(/[\r\n]+/g," ");
 const startIndex = input.indexOf('<script>') + 8;
 const endIndex = input.indexOf('<\/script>');

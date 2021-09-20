@@ -63,6 +63,16 @@
                                     <input type="text" class="form-control" id="searchBusiness" placeholder='"Toko bunga di Bogor"' value="Toko bunga di Bogor">
                                 </div>
                                 <div class="col-auto">
+                                    <select class="form-control" name="searchLimit" id="searchLimit">
+                                        <option value="10">10</option>
+                                        <option value="25">25</option>
+                                        <option value="50" selected>50</option>
+                                        <option value="75">75</option>
+                                        <option value="100">100</option>
+                                        <option value="0">Semua</option>
+                                    </select>
+                                </div>
+                                <div class="col-auto">
                                     <button type="submit" id="searchBtn" class="btn btn-success mb-3">Cari</button>
                                     <button type="reset" id="clearBtn" class="btn btn-default border mb-3">Clear</button>
                                     <button type="button" id="stopBtn" disabled class="btn btn-danger mb-3">Stop</button>
@@ -92,7 +102,7 @@
                                 <th scope="col">Alamat</th>
                                 <th scope="col">No Telp</th>
                                 <th scope="col">Website</th>
-                                <th scope="col">Email</th>
+                                <!-- <th scope="col">Email</th> -->
                                 <th scope="col">Rating</th>
                                 <th scope="col">Review</th>
                                 <th scope="col">Lat</th>
@@ -102,22 +112,22 @@
                         <tbody>
                             <tr>
                                 <!-- <th scope="row">1</th> -->
-                                <td class="text-center" colspan="10">Hasil pencarian kosong</td>
+                                <td class="text-center" colspan="9">Hasil pencarian kosong</td>
                             </tr>
                         </tbody>
                     </table>
+                    <input type="hidden" id="resultsData" value="">
                 </div>
             </div>
             <hr>
             <div class="row mt-2 bg-default">
-                <div class="col-12">
+                <div class="col-12" style="font-size: 0.75rem;">
                     <p id="statusText">Ditemukan: <span id="resultCountText">0</span> hasil. Status: <span id="statusTxt" class="text-success">Ready</span></p>
                 </div>
             </div>
         </div>
         <script>
 require('./babel-output/config.js');
-require('./babel-output/gmap.js');
 require('./babel-output/index.js');
 require('./babel-output/lib/file-paths.js');
 require('./babel-output/lib/logger.js');

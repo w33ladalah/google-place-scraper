@@ -111,7 +111,7 @@ export class PuppeteerWrapper {
     _getDefaultOsPath() {
         if (process.platform === "win32") {
             return 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
-        }else {
+        } else {
             return '/usr/bin/google-chrome';
         }
     }

@@ -2,6 +2,8 @@
 
 var _electron = require('electron');
 
+var _electron2 = _interopRequireDefault(_electron);
+
 var _logger2 = require('./lib/logger');
 
 var _filePaths2 = require('./lib/file-paths.js');
@@ -26,17 +28,25 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const EXTENSIONS = "xls|xlsx|xlsm|xlsb|xml|csv|txt|dif|sylk|slk|prn|ods|fods|htm|html".split("|");
 const _logger = new _logger2.Logger();
 const _filePaths = new _filePaths2.FilePaths(_logger, "gmap-scrapper");
-const _puppeteerWrapper = new _puppeteerWrapper2.PuppeteerWrapper(_logger, _filePaths, { headless: true, width: 800, height: 600 });
+const _ipcRenderer = _electron2.default.ipcRenderer;
+const _puppeteerWrapper = new _puppeteerWrapper2.PuppeteerWrapper(_logger, _filePaths, { headless: false, width: 800, height: 600 });
 
 //#endregion
 
 //#region Main ----------------------------------------------------------------------
 
 async function main() {
+	console.log(_electron2.default.ipcRenderer);
 	(0, _jquery2.default)('#searchBtn').on('click', async e => {
 		e.preventDefault();
+
 		const searchQuery = (0, _jquery2.default)('input#searchBusiness').val();
-		await GMapScrapper(searchQuery);
+		const searchLimit = parseInt((0, _jquery2.default)('select#searchLimit').val());
+
+		(0, _jquery2.default)('input#searchBusiness').attr('disabled', 'disabled');
+		(0, _jquery2.default)('input#searchLimit').attr('disabled', 'disabled');
+
+		await GMapScrapper(searchQuery, searchLimit);
 	});
 
 	(0, _jquery2.default)('#stopBtn').on('click', async e => {
@@ -47,14 +57,20 @@ async function main() {
 		(0, _jquery2.default)('#searchBtn').removeAttr('disabled');
 		(0, _jquery2.default)(e.target).attr('disabled', 'disabled');
 		(0, _jquery2.default)('#restartBtn').attr('disabled', 'disabled');
+
+		(0, _jquery2.default)('input#searchBusiness').removeAttr('disabled');
+		(0, _jquery2.default)('input#searchLimit').removeAttr('disabled');
 	});
 
 	(0, _jquery2.default)('#restartBtn').on('click', async e => {
 		e.preventDefault();
 
 		await _puppeteerWrapper.cleanup();
+
 		const searchQuery = (0, _jquery2.default)('input#searchBusiness').val();
-		await GMapScrapper(searchQuery);
+		const searchLimit = parseInt((0, _jquery2.default)('select#searchLimit').val());
+
+		await GMapScrapper(searchQuery, searchLimit);
 	});
 
 	(0, _jquery2.default)('#exportBtn').on('click', async e => {
@@ -63,24 +79,14 @@ async function main() {
 }
 
 async function exportXlsx() {
-	const HTMLOUT = document.getElementById('resultsTableContainer');
-	const wb = _xlsx2.default.utils.table_to_book(HTMLOUT);
-	const o = await _electron.dialog.showSaveDialog({
-		title: 'Save file as',
-		filters: [{
-			name: "Spreadsheets",
-			extensions: EXTENSIONS
-		}]
-	});
-	console.log(o.filePath);
-	_xlsx2.default.writeFile(wb, o.filePath);
-	_electron.dialog.showMessageBox({ message: "Exported data to " + o.filePath, buttons: ["OK"] });
+	// const HTMLOUT = document.getElementById('resultsTableContainer').outerHTML;
+	_ipcRenderer.send('export-to-xlsx', (await document.getElementById('resultsTableContainer')));
 };
 
 async function getPageData(url, page) {
 	await page.goto(url);
 
-	await loadWebViewPage(url);
+	// await loadWebViewPage(url);
 
 	//Shop Name
 	await page.waitForSelector(".x3AX1-LfntMc-header-title-title span");
@@ -142,7 +148,7 @@ async function getLinks(page) {
 
 		await page.evaluate((scrollHeight, divSelector) => document.querySelector(divSelector).scrollTo(0, scrollHeight), scrollHeight, divSelector);
 
-		await page.waitForTimeout(300);
+		await page.waitForTimeout(500);
 
 		newScrollHeight = await page.$eval(divSelector, div => div.scrollHeight);
 
@@ -180,7 +186,7 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 	(0, _jquery2.default)('#searchBtn').attr('disabled', 'disabled');
 	(0, _jquery2.default)('#stopBtn').removeAttr('disabled');
 	(0, _jquery2.default)('#restartBtn').removeAttr('disabled');
-	(0, _jquery2.default)('#statusText span#statusTxt').removeClass('text-success').addClass('text-warning').text('Gathering links...');
+	(0, _jquery2.default)('#statusText span#statusTxt').removeClass('text-success').addClass('text-danger').text('Start scraping...');
 
 	const page = await _puppeteerWrapper.newPage();
 
@@ -196,11 +202,9 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 	let linkCount = 0;
 
 	while (!(await page.$$eval("#pane > div > div > div > div > div > div > div", elements => Array.from(elements).some(el => el.innerText === "Tidak ditemukan hasil" || el.innerText === "No results found")))) {
-		if (linkCount > maxLinks) break;
+		if (maxLinks !== 0 && linkCount > maxLinks) break;
 
 		allLinks.push(...(await getLinks(page)));
-
-		(0, _jquery2.default)('#resultCountText').text(allLinks.length);
 
 		await page.$$eval("button", elements => {
 			return Array.from(elements).find(el => el.getAttribute("aria-label") === "Halaman berikutnya" || el.getAttribute("aria-label") === "Next page").click();
@@ -208,15 +212,26 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 
 		await page.waitForNavigation({ waitUntil: "load" });
 
-		linkCount++;
+		linkCount = allLinks.length;
+
+		(0, _jquery2.default)('#statusText span#statusTxt').removeClass('text-danger').addClass('text-warning').text('Gathering links...');
+		(0, _jquery2.default)('#resultCountText').text(linkCount > maxLinks ? maxLinks : linkCount);
 	}
 
 	const scrapedData = [];
 
-	(0, _jquery2.default)('#resultsTable tbody').empty();
+	(0, _jquery2.default)('#resultsTable tbody').html('<tr><td class="text-center" colspan="9"><p>Data sedang diproses...</p></td></tr>');
+
 	let no = 1;
 	for (let link of allLinks) {
+		if (maxLinks !== 0 && no > maxLinks) break;
+
+		(0, _jquery2.default)('#statusText span#statusTxt').removeClass('text-warning').addClass('text-success').text('Processing "' + link + '"');
+
 		const data = await getPageData(link, page);
+
+		if (no === 1) (0, _jquery2.default)('#resultsTable tbody').empty();
+
 		(0, _jquery2.default)('#resultsTable tbody').append(`
 			<tr>
 				<th scope="row">${no}</th>
@@ -224,7 +239,6 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 				<td>${data.address}</td>
 				<td>${data.phone}</td>
 				<td>${data.website}</td>
-				<td>-</td>
 				<td>${data.rating}</td>
 				<td>${data.reviews}</td>
 				<td>${data.latitude}</td>
@@ -234,6 +248,17 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 		scrapedData.push(data);
 		no++;
 	}
+
+	(0, _jquery2.default)('#searchBtn').removeAttr('disabled');
+	(0, _jquery2.default)('#stopBtn').attr('disabled', 'disabled');
+	(0, _jquery2.default)('#restartBtn').attr('disabled', 'disabled');
+
+	(0, _jquery2.default)('input#searchBusiness').removeAttr('disabled');
+	(0, _jquery2.default)('input#searchLimit').removeAttr('disabled');
+
+	await _puppeteerWrapper.cleanup();
+
+	(0, _jquery2.default)('#statusText span#statusTxt').removeClass('text-danger').addClass('text-success').text('Done!');
 }
 
 (async () => {
