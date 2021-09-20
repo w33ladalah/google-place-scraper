@@ -8,18 +8,25 @@ const ipcMain = electron.ipcMain;
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow;
 
+const { join } = require('path');
 const path = require('path');
 const url = require('url');
+const JSONdb = require('simple-json-db');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
+
+// Use JSON file for storage
+const file = join(__dirname, 'data/db.json');
+const db = new JSONdb(file);
 
 function createWindow() {
 	// Create the browser window.
 	mainWindow = new BrowserWindow({
 		width: 1366,
 		height: 768,
+		icon: './assets/icons/favicon-32x32.png',
 		webPreferences: {
 			worldSafeExecuteJavaScript: true, // required for Electron 12+
 			contextIsolation: false, // required for Electron 12+
@@ -84,16 +91,40 @@ app.on('activate', function () {
 // code. You can also put them in separate files and require them here.
 const dialog = electron.dialog;
 const EXTENSIONS = "xls|xlsx|xlsm|xlsb|xml|csv|txt|dif|sylk|slk|prn|ods|fods|htm|html".split("|");
-ipcMain.on('export-to-xlsx', function(evt, data){
-	const wb = XLSX.utils.table_to_book(data);
-	const o = dialog.showSaveDialogSync({
+ipcMain.on('export-to-xlsx', async function(evt){
+	const wb = XLSX.utils.book_new();
+	wb.Props = {
+		Title: "GMap Scraper Results",
+		Subject: "GMap Scraper Results",
+		Author: "GMap Scraper v1.0.0",
+		CreatedDate: new Date()
+	};
+	wb.SheetNames.push("Sheet 1");
+
+	const dbData = db.get('businesses');
+	const wbData = [];
+
+	for (let i = 0; i < dbData.length; i++) {
+		if (i === 0) wbData.push(Object.keys(dbData[i]));
+
+		wbData.push(Object.values(dbData[i]));
+	}
+
+	const ws = XLSX.utils.aoa_to_sheet(wbData);
+
+	wb.Sheets["Sheet 1"] = ws;
+
+	const o = await dialog.showSaveDialog({
 		title: 'Save file as',
 		filters: [{
 			name: "Spreadsheets",
 			extensions: EXTENSIONS
 		}]
 	});
-	console.log(o.filePath);
+
+	console.log(wb);
+
 	XLSX.writeFile(wb, o.filePath);
+
 	dialog.showMessageBox({ message: "Exported data to " + o.filePath, buttons: ["OK"] });
 });

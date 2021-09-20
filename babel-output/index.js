@@ -14,29 +14,33 @@ var _jquery = require('jquery');
 
 var _jquery2 = _interopRequireDefault(_jquery);
 
-var _xlsx = require('xlsx');
+var _path = require('path');
 
-var _xlsx2 = _interopRequireDefault(_xlsx);
+var _simpleJsonDb = require('simple-json-db');
+
+var _simpleJsonDb2 = _interopRequireDefault(_simpleJsonDb);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 //#endregion
 
 //#region Setup - Dependency Injection-----------------------------------------------
-//#region Imports
+const EXTENSIONS = "xls|xlsx|xlsm|xlsb|xml|csv|txt|dif|sylk|slk|prn|ods|fods|htm|html".split("|"); //#region Imports
 // Library ----------------------------------------------------------------------------------
-const EXTENSIONS = "xls|xlsx|xlsm|xlsb|xml|csv|txt|dif|sylk|slk|prn|ods|fods|htm|html".split("|");
+
 const _logger = new _logger2.Logger();
 const _filePaths = new _filePaths2.FilePaths(_logger, "gmap-scrapper");
 const _ipcRenderer = _electron2.default.ipcRenderer;
 const _puppeteerWrapper = new _puppeteerWrapper2.PuppeteerWrapper(_logger, _filePaths, { headless: false, width: 800, height: 600 });
 
+// Use JSON file for storage
+const file = (0, _path.join)(__dirname, '../data/db.json');
+const db = new _simpleJsonDb2.default(file);
 //#endregion
 
-//#region Main ----------------------------------------------------------------------
+//#region Main ---------------------------------------------------------------------
 
 async function main() {
-	console.log(_electron2.default.ipcRenderer);
 	(0, _jquery2.default)('#searchBtn').on('click', async e => {
 		e.preventDefault();
 
@@ -74,14 +78,9 @@ async function main() {
 	});
 
 	(0, _jquery2.default)('#exportBtn').on('click', async e => {
-		await exportXlsx();
+		_ipcRenderer.send('export-to-xlsx');
 	});
 }
-
-async function exportXlsx() {
-	// const HTMLOUT = document.getElementById('resultsTableContainer').outerHTML;
-	_ipcRenderer.send('export-to-xlsx', (await document.getElementById('resultsTableContainer')));
-};
 
 async function getPageData(url, page) {
 	await page.goto(url);
@@ -127,7 +126,7 @@ async function getPageData(url, page) {
 		reviews: reviewCount === undefined ? '' : reviewCount.trim(),
 		address: address === undefined ? '' : address.trim(),
 		website: website === undefined ? '' : website.trim(),
-		phone: phone === undefined ? '' : phone.trim().replace('-', ''),
+		phone: phone === undefined ? '' : phone.trim().replace(/\-/g, ''),
 		latitude: latLong[0],
 		longitude: latLong[1]
 	};
@@ -248,6 +247,10 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 		scrapedData.push(data);
 		no++;
 	}
+
+	db.set('links', allLinks);
+	db.set('businesses', scrapedData);
+	db.sync();
 
 	(0, _jquery2.default)('#searchBtn').removeAttr('disabled');
 	(0, _jquery2.default)('#stopBtn').attr('disabled', 'disabled');

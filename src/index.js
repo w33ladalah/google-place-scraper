@@ -5,7 +5,9 @@ import { Logger } from './lib/logger';
 import { FilePaths } from './lib/file-paths.js';
 import { PuppeteerWrapper } from './lib/puppeteer-wrapper';
 import $ from 'jquery';
-import XLSX from 'xlsx';
+import { join } from 'path';
+import JSONdb from 'simple-json-db';
+
 //#endregion
 
 //#region Setup - Dependency Injection-----------------------------------------------
@@ -16,12 +18,14 @@ const _ipcRenderer = electron.ipcRenderer;
 const _puppeteerWrapper = new PuppeteerWrapper(_logger, _filePaths,
 	{ headless: false, width: 800, height: 600 });
 
+// Use JSON file for storage
+const file = join(__dirname, '../data/db.json');
+const db = new JSONdb(file);
 //#endregion
 
-//#region Main ----------------------------------------------------------------------
+//#region Main ---------------------------------------------------------------------
 
 async function main() {
-	console.log(electron.ipcRenderer);
 	$('#searchBtn').on('click', async (e) => {
 		e.preventDefault();
 
@@ -59,14 +63,9 @@ async function main() {
 	});
 
 	$('#exportBtn').on('click', async (e) => {
-		await exportXlsx();
+		_ipcRenderer.send('export-to-xlsx');
 	});
 }
-
-async function exportXlsx() {
-	// const HTMLOUT = document.getElementById('resultsTableContainer').outerHTML;
-	_ipcRenderer.send('export-to-xlsx', await document.getElementById('resultsTableContainer'));
-};
 
 async function getPageData(url, page) {
 	await page.goto(url);
@@ -145,7 +144,7 @@ async function getPageData(url, page) {
 		reviews: reviewCount === undefined ? '' : reviewCount.trim(),
 		address: address === undefined ? '' : address.trim(),
 		website: website === undefined ? '' : website.trim(),
-		phone: phone === undefined ? '' : phone.trim().replace('-', ''),
+		phone: phone === undefined ? '' : phone.trim().replace(/\-/g, ''),
 		latitude: latLong[0],
 		longitude: latLong[1],
 	};
@@ -293,6 +292,10 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 		no++;
 	}
 
+	db.set('links', allLinks);
+	db.set('businesses', scrapedData);
+	db.sync();
+
 	$('#searchBtn').removeAttr('disabled');
 	$('#stopBtn').attr('disabled', 'disabled');
 	$('#restartBtn').attr('disabled', 'disabled');
@@ -313,6 +316,8 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 		// }
 
 		await main();
+
+
 	} catch (e) {
 		_logger.logError('Thrown error:');
 		_logger.logError(e);
