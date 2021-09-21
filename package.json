@@ -9,12 +9,12 @@
     "start": "npm run babel_build & npm run copy-babel-output & electron .",
     "start_dev": "babel-node --presets env,stage-3 src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dist": "npm run babel_build & npm run copy-babel-output & build"
+    "dist": "npm run babel_build & npm run copy-babel-output & build",
+    "pack": "electron-builder -w"
   },
   "author": "Hendro Wibowo",
   "license": "ISC",
   "dependencies": {
-    "electron": "^14.0.1",
     "jquery": "^3.6.0",
     "lowdb": "^3.0.0",
     "puppeteer-core": "^10.2.0",
@@ -26,7 +26,31 @@
     "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
     "babel-preset-env": "^1.7.0",
     "babel-preset-stage-3": "^6.24.1",
-    "babel-watch": "^2.0.7",
+    "babel-watch": "^7.5.0",
+    "electron": "^14.0.1",
     "electron-builder": "^22.11.7"
+  },
+  "build": {
+    "appId": "WongBiasaCo.GMapScraper",
+    "productName": "GMap Scraper",
+    "copyright": "WongBiasa.co",
+    "directories": {
+      "app": ".",
+      "output": "out",
+      "buildResources": "assets"
+    },
+    "files": [
+      "package.json",
+      "./**/*",
+      "node_modules"
+    ],
+    "win": {
+      "icon": "assets/ms-icon-310x310.png",
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Utility"
+    }
   }
 }

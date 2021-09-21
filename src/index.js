@@ -5,22 +5,16 @@ import { Logger } from './lib/logger';
 import { FilePaths } from './lib/file-paths.js';
 import { PuppeteerWrapper } from './lib/puppeteer-wrapper';
 import $ from 'jquery';
-import { join } from 'path';
-import JSONdb from 'simple-json-db';
-
 //#endregion
 
 //#region Setup - Dependency Injection-----------------------------------------------
-const EXTENSIONS = "xls|xlsx|xlsm|xlsb|xml|csv|txt|dif|sylk|slk|prn|ods|fods|htm|html".split("|");
 const _logger = new Logger();
 const _filePaths = new FilePaths(_logger, "gmap-scrapper");
 const _ipcRenderer = electron.ipcRenderer;
 const _puppeteerWrapper = new PuppeteerWrapper(_logger, _filePaths,
 	{ headless: false, width: 800, height: 600 });
 
-// Use JSON file for storage
-const file = join(__dirname, '../data/db.json');
-const db = new JSONdb(file);
+let scrapedData = [];
 //#endregion
 
 //#region Main ---------------------------------------------------------------------
@@ -63,7 +57,7 @@ async function main() {
 	});
 
 	$('#exportBtn').on('click', async (e) => {
-		_ipcRenderer.send('export-to-xlsx');
+		_ipcRenderer.send('export-to-xlsx', scrapedData);
 	});
 }
 
@@ -216,6 +210,9 @@ async function loadWebViewPage(url) {
 async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100) {
 	console.log('Start scrapping data.');
 
+	// Make sure this variable empty
+	scrapedData = [];
+
 	$('#searchBtn').attr('disabled', 'disabled');
 	$('#stopBtn').removeAttr('disabled');
 	$('#restartBtn').removeAttr('disabled');
@@ -261,8 +258,6 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 		$('#resultCountText').text(linkCount > maxLinks ? maxLinks : linkCount);
 	}
 
-	const scrapedData = [];
-
 	$('#resultsTable tbody').html('<tr><td class="text-center" colspan="9"><p>Data sedang diproses...</p></td></tr>');
 
 	let no = 1;
@@ -291,10 +286,6 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 		scrapedData.push(data);
 		no++;
 	}
-
-	db.set('links', allLinks);
-	db.set('businesses', scrapedData);
-	db.sync();
 
 	$('#searchBtn').removeAttr('disabled');
 	$('#stopBtn').attr('disabled', 'disabled');

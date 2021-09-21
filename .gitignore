@@ -1,3 +1,5 @@
 /node_modules
 /saved_recordings
+/.vs
+/out
 yarn-error.log
