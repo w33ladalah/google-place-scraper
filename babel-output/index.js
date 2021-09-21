@@ -14,28 +14,19 @@ var _jquery = require('jquery');
 
 var _jquery2 = _interopRequireDefault(_jquery);
 
-var _path = require('path');
-
-var _simpleJsonDb = require('simple-json-db');
-
-var _simpleJsonDb2 = _interopRequireDefault(_simpleJsonDb);
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 //#endregion
 
 //#region Setup - Dependency Injection-----------------------------------------------
-const EXTENSIONS = "xls|xlsx|xlsm|xlsb|xml|csv|txt|dif|sylk|slk|prn|ods|fods|htm|html".split("|"); //#region Imports
+const _logger = new _logger2.Logger(); //#region Imports
 // Library ----------------------------------------------------------------------------------
 
-const _logger = new _logger2.Logger();
 const _filePaths = new _filePaths2.FilePaths(_logger, "gmap-scrapper");
 const _ipcRenderer = _electron2.default.ipcRenderer;
 const _puppeteerWrapper = new _puppeteerWrapper2.PuppeteerWrapper(_logger, _filePaths, { headless: false, width: 800, height: 600 });
 
-// Use JSON file for storage
-const file = (0, _path.join)(__dirname, '../data/db.json');
-const db = new _simpleJsonDb2.default(file);
+let scrapedData = [];
 //#endregion
 
 //#region Main ---------------------------------------------------------------------
@@ -78,7 +69,7 @@ async function main() {
 	});
 
 	(0, _jquery2.default)('#exportBtn').on('click', async e => {
-		_ipcRenderer.send('export-to-xlsx');
+		_ipcRenderer.send('export-to-xlsx', scrapedData);
 	});
 }
 
@@ -182,6 +173,9 @@ async function loadWebViewPage(url) {
 async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100) {
 	console.log('Start scrapping data.');
 
+	// Make sure this variable empty
+	scrapedData = [];
+
 	(0, _jquery2.default)('#searchBtn').attr('disabled', 'disabled');
 	(0, _jquery2.default)('#stopBtn').removeAttr('disabled');
 	(0, _jquery2.default)('#restartBtn').removeAttr('disabled');
@@ -217,8 +211,6 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 		(0, _jquery2.default)('#resultCountText').text(linkCount > maxLinks ? maxLinks : linkCount);
 	}
 
-	const scrapedData = [];
-
 	(0, _jquery2.default)('#resultsTable tbody').html('<tr><td class="text-center" colspan="9"><p>Data sedang diproses...</p></td></tr>');
 
 	let no = 1;
@@ -247,10 +239,6 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 		scrapedData.push(data);
 		no++;
 	}
-
-	db.set('links', allLinks);
-	db.set('businesses', scrapedData);
-	db.sync();
 
 	(0, _jquery2.default)('#searchBtn').removeAttr('disabled');
 	(0, _jquery2.default)('#stopBtn').attr('disabled', 'disabled');

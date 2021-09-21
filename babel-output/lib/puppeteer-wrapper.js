@@ -69,6 +69,7 @@ class PuppeteerWrapper {
         await this.setup();
 
         const page = await this.browser.newPage();
+
         page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36');
 
         if (this._options.width) {
@@ -83,6 +84,7 @@ class PuppeteerWrapper {
 
     async _setChromePath() {
         this.chromePath = await this._getSavedPath();
+        console.log(this.chromePath);
         if (this.chromePath) {
             if (_fs2.default.existsSync(this.chromePath)) return true;
 
@@ -123,7 +125,7 @@ class PuppeteerWrapper {
 
     _getDefaultOsPath() {
         if (process.platform === "win32") {
-            return 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
+            return ['C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'];
         } else {
             return '/usr/bin/google-chrome';
         }

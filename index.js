@@ -1,4 +1,5 @@
 const electron = require('electron');
+const { globalShortcut } = require('electron');
 const XLSX = require('xlsx');
 
 // Module to control application life.
@@ -7,36 +8,31 @@ const ipcMain = electron.ipcMain;
 
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow;
-
-const { join } = require('path');
 const path = require('path');
 const url = require('url');
-const JSONdb = require('simple-json-db');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
-
-// Use JSON file for storage
-const file = join(__dirname, 'data/db.json');
-const db = new JSONdb(file);
 
 function createWindow() {
 	// Create the browser window.
 	mainWindow = new BrowserWindow({
 		width: 1366,
 		height: 768,
-		icon: './assets/icons/favicon-32x32.png',
+		icon: './assets/images/ms-icon-310x310.png',
 		webPreferences: {
 			worldSafeExecuteJavaScript: true, // required for Electron 12+
 			contextIsolation: false, // required for Electron 12+
 			nodeIntegration: true,
 			enableRemoteModule: true,
-			webviewTag: true
+			webviewTag: true,
+			devTools: false
 		}
 	});
 
 	mainWindow.maximize();
+	mainWindow.setMenuBarVisibility(false);
 
 	// and load the index.html of the app.
 	mainWindow.loadURL(
@@ -59,11 +55,21 @@ function createWindow() {
 		// when you should delete the corresponding element.
 		mainWindow = null;
 	});
+
+	//globalShortcut.register('Control+Shift+I', () => {
+		// When the user presses Ctrl + Shift + I, this function will get called
+		// You can modify this function to do other things, but if you just want
+		// to disable the shortcut, you can just return false
+		//dialog.showMessageBox({ message: "Yang Anda cari sedang pergi. hehehe...", buttons: ["Siyap"] });
+
+		//return false;
+	//});
 }
 if (app.setAboutPanelOptions) app.setAboutPanelOptions({
 	applicationName: 'GMap Scrapper',
 	applicationVersion: '1.0.0',
-	copyright: "(C) 2021-present SDM" });
+	copyright: "(C) 2021-present SDM"
+});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -91,40 +97,53 @@ app.on('activate', function () {
 // code. You can also put them in separate files and require them here.
 const dialog = electron.dialog;
 const EXTENSIONS = "xls|xlsx|xlsm|xlsb|xml|csv|txt|dif|sylk|slk|prn|ods|fods|htm|html".split("|");
-ipcMain.on('export-to-xlsx', async function(evt){
-	const wb = XLSX.utils.book_new();
-	wb.Props = {
-		Title: "GMap Scraper Results",
-		Subject: "GMap Scraper Results",
-		Author: "GMap Scraper v1.0.0",
-		CreatedDate: new Date()
-	};
-	wb.SheetNames.push("Sheet 1");
+ipcMain.on('export-to-xlsx', async function (evt, data) {
+	if (data.length > 0) {
+		const wb = XLSX.utils.book_new();
+		wb.Props = {
+			Title: "GMap Scraper Results",
+			Subject: "GMap Scraper Results",
+			Author: "GMap Scraper v1.0.0",
+			CreatedDate: new Date()
+		};
+		wb.SheetNames.push("Sheet 1");
 
-	const dbData = db.get('businesses');
-	const wbData = [];
+		const dbData = data; //db.get('businesses');
+		const wbData = [
+			[
+				"Business Name",
+				"Rating",
+				"Jumlah Review",
+				"Alamat",
+				"Website",
+				"Phone",
+				"Latitude",
+				"Longitude"
+			]
+		];
 
-	for (let i = 0; i < dbData.length; i++) {
-		if (i === 0) wbData.push(Object.keys(dbData[i]));
+		for (let i = 0; i < dbData.length; i++) {
+			if (i >= 0) {
+				wbData.push(Object.values(dbData[i]));
+			}
+		}
 
-		wbData.push(Object.values(dbData[i]));
+		const ws = XLSX.utils.aoa_to_sheet(wbData);
+
+		wb.Sheets["Sheet 1"] = ws;
+
+		const o = await dialog.showSaveDialog({
+			title: 'Save file as',
+			filters: [{
+				name: "Spreadsheets",
+				extensions: EXTENSIONS
+			}]
+		});
+
+		XLSX.writeFile(wb, o.filePath);
+
+		dialog.showMessageBox({ message: "Data berhasil diekspor ke " + o.filePath, buttons: ["OK"] });
+	} else {
+		dialog.showMessageBox({ message: "Belum ada data yang di-scrape. Silahkan melakukan pencarian terlebih dahulu.", buttons: ["OK"] });
 	}
-
-	const ws = XLSX.utils.aoa_to_sheet(wbData);
-
-	wb.Sheets["Sheet 1"] = ws;
-
-	const o = await dialog.showSaveDialog({
-		title: 'Save file as',
-		filters: [{
-			name: "Spreadsheets",
-			extensions: EXTENSIONS
-		}]
-	});
-
-	console.log(wb);
-
-	XLSX.writeFile(wb, o.filePath);
-
-	dialog.showMessageBox({ message: "Exported data to " + o.filePath, buttons: ["OK"] });
 });
