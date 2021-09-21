@@ -1,6 +1,6 @@
 {
   "name": "gmap-scraper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Scrap Google Map search results using Node.js + Electron",
   "main": "index.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "dist": "npm run babel_build & npm run copy-babel-output & build",
     "pack": "electron-builder -w"
   },
-  "author": "Hendro Wibowo",
+  "author": "WongBiasa.co",
   "license": "ISC",
   "dependencies": {
     "jquery": "^3.6.0",
@@ -31,12 +31,12 @@
     "electron-builder": "^22.11.7"
   },
   "build": {
-    "appId": "WongBiasaCo.GMapScraper",
+    "appId": "GMapScraper.GMapScraper",
     "productName": "GMap Scraper",
-    "copyright": "WongBiasa.co",
+    "copyright": "GMap Scraper",
     "directories": {
       "app": ".",
-      "output": "out",
+      "output": "build",
       "buildResources": "assets"
     },
     "files": [

@@ -99,14 +99,14 @@ class PuppeteerWrapper {
         }
 
         // Try the default path
-        this.chromePath = this._getDefaultOsPath();
-        if (!_fs2.default.existsSync(this.chromePath)) {
-            this._logger.logError(`Default chrome path does not exists: ${this.chromePath}`);
-            this._logger.logError(`Try to set chrome path in settings file: ${this._filePaths.settingsPath()}`);
-            return false;
-        }
+        //this.chromePath = this._getDefaultOsPath();
+        //if (!fs.existsSync(this.chromePath)) {
+        //    this._logger.logError(`Default chrome path does not exists: ${this.chromePath}`);
+        //    this._logger.logError(`Try to set chrome path in settings file: ${this._filePaths.settingsPath()}`);
+        //    return false;
+        //}
 
-        return true;
+        return false;
     }
 
     _getSavedPath() {

@@ -222,7 +222,7 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 
 	const page = await _puppeteerWrapper.newPage();
 
-	const gmapInitUrl = "https://www.google.com/maps/?q=" + searchQuery;
+	const gmapInitUrl = "https://www.google.com/maps/search/" + searchQuery;
 
 	await loadWebViewPage(gmapInitUrl);
 
@@ -311,7 +311,7 @@ _ipcRenderer.on('chrome-path-is-set', (event, arg) => {
 		if (!chromeSet) {
 			_ipcRenderer.send('chrome-not-found');
 		} else {
-			$('span#chromeInfo').addClass('text-success').text(await _puppeteerWrapper._getSavedPath());
+			$('span#chromeInfo').addClass('text-success').text(await _puppeteerWrapper._getSavedPath() || await _puppeteerWrapper._getDefaultOsPath());
         }
 
 		await main();

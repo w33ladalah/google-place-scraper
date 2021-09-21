@@ -33,7 +33,7 @@ function createWindow() {
 		}
 	});
 
-	//mainWindow.maximize();
+	mainWindow.maximize();
 	mainWindow.setMenuBarVisibility(false);
 
 	// and load the index.html of the app.
@@ -46,7 +46,7 @@ function createWindow() {
 	);
 
 	// Open the DevTools.
-	//mainWindow.webContents.openDevTools()
+	//mainWindow.webContents.openDevTools();
 
 	mainWindow.setTitle(`${app.getName()}-${app.getVersion()}`);
 

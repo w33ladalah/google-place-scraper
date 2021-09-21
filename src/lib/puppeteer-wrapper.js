@@ -82,14 +82,14 @@ export class PuppeteerWrapper {
         }
 
         // Try the default path
-        this.chromePath = this._getDefaultOsPath();
-        if (!fs.existsSync(this.chromePath)) {
-            this._logger.logError(`Default chrome path does not exists: ${this.chromePath}`);
-            this._logger.logError(`Try to set chrome path in settings file: ${this._filePaths.settingsPath()}`);
-            return false;
-        }
+        //this.chromePath = this._getDefaultOsPath();
+        //if (!fs.existsSync(this.chromePath)) {
+        //    this._logger.logError(`Default chrome path does not exists: ${this.chromePath}`);
+        //    this._logger.logError(`Try to set chrome path in settings file: ${this._filePaths.settingsPath()}`);
+        //    return false;
+        //}
 
-        return true;
+        return false;
     }
 
     _getSavedPath() {
@@ -98,7 +98,7 @@ export class PuppeteerWrapper {
 
     _getDefaultOsPath() {
         if (process.platform === "win32") {
-            return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+            return 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
         } else {
             return '/usr/bin/google-chrome';
         }
