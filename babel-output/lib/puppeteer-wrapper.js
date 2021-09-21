@@ -13,6 +13,10 @@ var _fs = require('fs');
 
 var _fs2 = _interopRequireDefault(_fs);
 
+var _simpleJsonDb = require('simple-json-db');
+
+var _simpleJsonDb2 = _interopRequireDefault(_simpleJsonDb);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -35,6 +39,8 @@ class PuppeteerWrapper {
         // Public
         this.chromePath = undefined;
         this.browser = undefined;
+
+        this.db = new _simpleJsonDb2.default('./settings.json');
     }
 
     //#region Public API setup - cleanup
@@ -84,7 +90,7 @@ class PuppeteerWrapper {
 
     async _setChromePath() {
         this.chromePath = await this._getSavedPath();
-        console.log(this.chromePath);
+
         if (this.chromePath) {
             if (_fs2.default.existsSync(this.chromePath)) return true;
 
@@ -104,28 +110,12 @@ class PuppeteerWrapper {
     }
 
     _getSavedPath() {
-        const settingsPath = this._filePaths.settingsPath();
-
-        return new Promise((resolve, reject) => {
-            if (!_fs2.default.existsSync(settingsPath)) {
-                resolve(undefined);
-                return;
-            }
-            _fs2.default.readFile(settingsPath, "utf8", (err, fileContent) => {
-                if (err) {
-                    this._logger.logError(err);
-                    reject();
-                    return;
-                }
-
-                resolve(fileContent);
-            });
-        });
+        return this.db.get('chrome_path');
     }
 
     _getDefaultOsPath() {
         if (process.platform === "win32") {
-            return ['C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'];
+            return 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
         } else {
             return '/usr/bin/google-chrome';
         }

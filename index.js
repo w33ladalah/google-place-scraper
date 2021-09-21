@@ -10,6 +10,8 @@ const ipcMain = electron.ipcMain;
 const BrowserWindow = electron.BrowserWindow;
 const path = require('path');
 const url = require('url');
+const JSONdb = require('simple-json-db');
+const db = new JSONdb('./settings.json');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -27,11 +29,11 @@ function createWindow() {
 			nodeIntegration: true,
 			enableRemoteModule: true,
 			webviewTag: true,
-			devTools: false
+			devTools: true
 		}
 	});
 
-	mainWindow.maximize();
+	//mainWindow.maximize();
 	mainWindow.setMenuBarVisibility(false);
 
 	// and load the index.html of the app.
@@ -44,7 +46,7 @@ function createWindow() {
 	);
 
 	// Open the DevTools.
-	// mainWindow.webContents.openDevTools()
+	//mainWindow.webContents.openDevTools()
 
 	mainWindow.setTitle(`${app.getName()}-${app.getVersion()}`);
 
@@ -57,12 +59,12 @@ function createWindow() {
 	});
 
 	//globalShortcut.register('Control+Shift+I', () => {
-		// When the user presses Ctrl + Shift + I, this function will get called
-		// You can modify this function to do other things, but if you just want
-		// to disable the shortcut, you can just return false
-		//dialog.showMessageBox({ message: "Yang Anda cari sedang pergi. hehehe...", buttons: ["Siyap"] });
+	//	// When the user presses Ctrl + Shift + I, this function will get called
+	//	// You can modify this function to do other things, but if you just want
+	//	// to disable the shortcut, you can just return false
+	//	dialog.showErrorBox("Forbidden", "Forbidden");
 
-		//return false;
+	//	return false;
 	//});
 }
 if (app.setAboutPanelOptions) app.setAboutPanelOptions({
@@ -98,6 +100,7 @@ app.on('activate', function () {
 const dialog = electron.dialog;
 const EXTENSIONS = "xls|xlsx|xlsm|xlsb|xml|csv|txt|dif|sylk|slk|prn|ods|fods|htm|html".split("|");
 ipcMain.on('export-to-xlsx', async function (evt, data) {
+	console.log(data);
 	if (data.length > 0) {
 		const wb = XLSX.utils.book_new();
 		wb.Props = {
@@ -144,6 +147,25 @@ ipcMain.on('export-to-xlsx', async function (evt, data) {
 
 		dialog.showMessageBox({ message: "Data berhasil diekspor ke " + o.filePath, buttons: ["OK"] });
 	} else {
-		dialog.showMessageBox({ message: "Belum ada data yang di-scrape. Silahkan melakukan pencarian terlebih dahulu.", buttons: ["OK"] });
+		dialog.showErrorBox("Belum ada data", "Belum ada data yang di-scrape. Silahkan melakukan pencarian terlebih dahulu.");
 	}
+});
+
+ipcMain.on('chrome-not-found', async function (evt, data) {
+	await dialog.showErrorBox("Google Chrome tidak ditemukan", "Tidak dapat menemukan Google Chrome di komputer Anda. Kemungkinan Anda belum meng-install-nya atau pilih instalasi Chrome Anda seara manual.");
+
+	const chromePathDialog = await dialog.showOpenDialog({
+		title: "Pilih instalasi Google Chrome",
+		filters: [
+			{ name: 'Executable File', extensions: ['exe'] },
+		]
+	});
+
+	if (!chromePathDialog.canceled) {
+		const chromePath = chromePathDialog.filePaths[0];
+		db.set("chrome_path", chromePath);
+
+		app.relaunch({ args: process.argv.slice(1).concat(['--relaunch']) })
+		app.exit(0)
+    }
 });

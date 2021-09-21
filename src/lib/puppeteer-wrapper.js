@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer-core';
 import fs from 'fs';
-
+import JSONdb from 'simple-json-db';
 
 /**
  * chromePath:  the path of the chrome executable in our pc
@@ -22,6 +22,8 @@ export class PuppeteerWrapper {
         // Public
         this.chromePath = undefined;
         this.browser = undefined;
+
+        this.db = new JSONdb('./settings.json');
     }
 
     //#region Public API setup - cleanup
@@ -71,7 +73,7 @@ export class PuppeteerWrapper {
 
     async _setChromePath() {
         this.chromePath = await this._getSavedPath();
-        console.log(this.chromePath);
+
         if (this.chromePath) {
             if (fs.existsSync(this.chromePath)) return true;
 
@@ -91,31 +93,12 @@ export class PuppeteerWrapper {
     }
 
     _getSavedPath() {
-        const settingsPath = this._filePaths.settingsPath();
-
-        return new Promise((resolve, reject) => {
-            if (!fs.existsSync(settingsPath)) {
-                resolve(undefined);
-                return;
-            }
-            fs.readFile(settingsPath, "utf8", (err, fileContent) => {
-                if (err) {
-                    this._logger.logError(err);
-                    reject();
-                    return;
-                }
-
-                resolve(fileContent);
-            });
-        })
+        return this.db.get('chrome_path');
     }
 
     _getDefaultOsPath() {
         if (process.platform === "win32") {
-            return [
-                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
-            ];
+            return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
         } else {
             return '/usr/bin/google-chrome';
         }

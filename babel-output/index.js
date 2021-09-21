@@ -32,6 +32,8 @@ let scrapedData = [];
 //#region Main ---------------------------------------------------------------------
 
 async function main() {
+	await _puppeteerWrapper._getSavedPath();
+
 	(0, _jquery2.default)('#searchBtn').on('click', async e => {
 		e.preventDefault();
 
@@ -252,12 +254,18 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 	(0, _jquery2.default)('#statusText span#statusTxt').removeClass('text-danger').addClass('text-success').text('Done!');
 }
 
+_ipcRenderer.on('chrome-path-is-set', (event, arg) => {
+	(0, _jquery2.default)('span#chromeInfo').addClass('text-success').text(arg);
+});
+
 (async () => {
 	try {
-		// const chromeSet = await _puppeteerWrapper.setup();
-		// if (!chromeSet) {
-		// 	return;
-		// }
+		const chromeSet = await _puppeteerWrapper.setup();
+		if (!chromeSet) {
+			_ipcRenderer.send('chrome-not-found');
+		} else {
+			(0, _jquery2.default)('span#chromeInfo').addClass('text-success').text((await _puppeteerWrapper._getSavedPath()));
+		}
 
 		await main();
 	} catch (e) {
