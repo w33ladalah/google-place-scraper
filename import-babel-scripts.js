@@ -3,7 +3,7 @@ const fs = require('fs');
 
 // Constants
 const babelOutputFolderName = 'babel-output';
-const htmlFile = './index.html';
+const htmlFiles = ['./index.html', './restricted.html'];
 
 // Main
 const babelOutputDirectory = path.join(__dirname, babelOutputFolderName);
@@ -13,17 +13,18 @@ const filesToAdd = getFolderFiles(babelOutputDirectory)
     .map(f => f.replace(/\\/g, '\/'))
     .map(f => `require('${f}');`);
 
-let input = fs.readFileSync(htmlFile, "utf8");//.replace(/[\r\n]+/g," ");
-const startIndex = input.indexOf('<script>') + 8;
-const endIndex = input.indexOf('<\/script>');
-input = input.substring(0, startIndex)
+htmlFiles.forEach(htmlFile => {
+    let input = fs.readFileSync(htmlFile, "utf8");//.replace(/[\r\n]+/g," ");
+    const startIndex = input.indexOf('<script>') + 8;
+    const endIndex = input.indexOf('<\/script>');
+    input = input.substring(0, startIndex)
         + '\n'
         + filesToAdd.join('\n')
         + '\n'
         + input.substring(endIndex);
 
-fs.writeFileSync(htmlFile, input);
-
+    fs.writeFileSync(htmlFile, input);
+});
 
 function getFolderFiles(dir, filelist) {
     filelist = filelist || [];

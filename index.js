@@ -37,9 +37,19 @@ function createWindow() {
 	mainWindow.setMenuBarVisibility(false);
 
 	// and load the index.html of the app.
+	let fileHtml = 'index.html';
+	if (!checkForLicense()) {
+		fileHtml = 'restricted.html';
+
+		dialog.showMessageBox({
+			title:"License Key GMap Scraper",
+			message: "Anda belum memasukkan license key GMap Scraper. Apabila Anda sudah memiliki license key tersebut, silahkan masukkan ke form yang tersedia."
+		});
+	}
+
 	mainWindow.loadURL(
 		url.format({
-			pathname: path.join(__dirname, 'index.html'),
+			pathname: path.join(__dirname, fileHtml),
 			protocol: 'file:',
 			slashes: true
 		})
@@ -58,19 +68,24 @@ function createWindow() {
 		mainWindow = null;
 	});
 
-	//globalShortcut.register('Control+Shift+I', () => {
-	//	// When the user presses Ctrl + Shift + I, this function will get called
-	//	// You can modify this function to do other things, but if you just want
-	//	// to disable the shortcut, you can just return false
-	//	dialog.showErrorBox("Forbidden", "Forbidden");
+	// globalShortcut.register('Control+Shift+I', () => {
+	// 	// When the user presses Ctrl + Shift + I, this function will get called
+	// 	// You can modify this function to do other things, but if you just want
+	// 	// to disable the shortcut, you can just return false
+	// 	dialog.showMessageBox({ title: "GMap Scraper", message: "GMap Scraper"});
 
-	//	return false;
-	//});
+	// 	return false;
+	// });
 }
+
+function checkForLicense() {
+	return false;
+}
+
 if (app.setAboutPanelOptions) app.setAboutPanelOptions({
-	applicationName: 'GMap Scrapper',
-	applicationVersion: '1.0.0',
-	copyright: "(C) 2021-present SDM"
+	applicationName: 'GMap Scraper',
+	applicationVersion: '1.0.1',
+	copyright: "(C) 2021-present GMap Scraper Team"
 });
 
 // This method will be called when Electron has finished
@@ -156,9 +171,6 @@ ipcMain.on('chrome-not-found', async function (evt, data) {
 
 	const chromePathDialog = await dialog.showOpenDialog({
 		title: "Pilih instalasi Google Chrome",
-		filters: [
-			{ name: 'Executable File', extensions: ['exe'] },
-		]
 	});
 
 	if (!chromePathDialog.canceled) {

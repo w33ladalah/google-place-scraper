@@ -10,11 +10,14 @@
     "start_dev": "babel-node --presets env,stage-3 src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dist": "npm run babel_build & npm run copy-babel-output & build",
-    "pack": "electron-builder -w"
+    "packw": "electron-builder -w",
+    "packl": "electron-builder -l"
   },
-  "author": "WongBiasa.co",
+  "author": "Piranti Digital Media",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.21.4",
+    "bootstrap": "5.0.2",
     "jquery": "^3.6.0",
     "lowdb": "^3.0.0",
     "puppeteer-core": "^10.2.0",
@@ -31,9 +34,9 @@
     "electron-builder": "^22.11.7"
   },
   "build": {
-    "appId": "GMapScraper.GMapScraper",
+    "appId": "PirantiDigitalMedia.GMapScraper",
     "productName": "GMap Scraper",
-    "copyright": "GMap Scraper",
+    "copyright": "Piranti Digital Media",
     "directories": {
       "app": ".",
       "output": "build",
