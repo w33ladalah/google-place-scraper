@@ -60,13 +60,14 @@
                             <form class="row g-3" id="searchBusinessForm">
                                 <div class="col-3">
                                     <label for="searchBusiness" class="visually-hidden">Cari</label>
-                                    <input type="text" class="form-control" id="searchBusiness" placeholder='"Toko bunga di Bogor"' value="Toko bunga di Bogor">
+                                    <input type="text" class="form-control" id="searchBusiness" placeholder='Ketik kata kunci pencarian disini' value="">
+                                    <!-- <label for="silentMode" class="my-2"><input type="checkbox" class="" value="1" id="silentMode" name="silentMode" />&nbsp;Mode senyap</label>-->
                                 </div>
                                 <div class="col-auto">
                                     <select class="form-control" name="searchLimit" id="searchLimit">
                                         <option value="10">10</option>
-                                        <option value="25">25</option>
-                                        <option value="50" selected>50</option>
+                                        <option value="25" selected>25</option>
+                                        <option value="50">50</option>
                                         <option value="75">75</option>
                                         <option value="100">100</option>
                                         <option value="0">Semua</option>
@@ -78,6 +79,7 @@
                                     <button type="button" id="stopBtn" disabled class="btn btn-danger mb-3">Stop</button>
                                     <button type="button" id="restartBtn" disabled class="btn btn-info mb-3">Restart</button>
                                     <button type="button" id="exportBtn" class="btn btn-primary mb-3">Export ke Excel</button>
+                                    
                                 </div>
                             </form>
                         </div>
@@ -87,13 +89,13 @@
             <hr class="mt-0">
             <div class="row">
                 <div class="col-5">
-                    <div class="row" style="height: 780px">
+                    <div class="row" style="height: 740px">
                         <div class="col-12">
                             <webview style="min-height: 100%;" class="border" id="gmapWv" autosize="on" src="https://www.google.com/maps" data-home="https://www.google.com/maps" useragent="Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) like Gecko"></webview>
                         </div>
                     </div>
                 </div>
-                <div class="col-7" style="overflow-y: scroll; font-size: 0.7rem; height: 780px" id="resultsTableContainer">
+                <div class="col-7" style="overflow-y: scroll; font-size: 0.7rem; height: 740px" id="resultsTableContainer">
                     <table class="table table-bordered border-default" id="resultsTable">
                         <thead>
                             <tr>
@@ -122,7 +124,7 @@
             <hr class="mb-0">
             <div class="row mt-2 bg-default">
                 <div class="col-12" style="font-size: 0.75rem;">
-                    <p class="my-0 py-0">Chrome/Chromium: <span id="chromeInfo"></span></p>
+                    <p class="my-0 py-0">Chrome/Chromium: <span id="chromeInfo"></span>, System info: <span id="systemInfo"></span></p>
                     <p class="my-0 py-0" id="licenseToText"></p>
                     <p id="statusText">Ditemukan: <span id="resultCountText">0</span> hasil. Status: <span id="statusTxt" class="text-success">Ready</span></p>
                 </div>

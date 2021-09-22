@@ -1,6 +1,7 @@
 {
     "chrome_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "license_server_url": "https://license.pirantisofthouse.com",
+    "signature": "b0efacd357cd2f08567275860ebb4be5",
     "user_email": "hendrothemail@gmail.com",
-    "user_license": "$2y$10$MdNG23VuIRyFgL4YmenSZurI/N0lAkkZ6tQF3RS07ED88neLlUM4O",
-    "license_server_url": "https://license.pirantisofthouse.com"
+    "user_license": "$2y$10$667OhSoUI2plS5PoLinXSOgFXhwM7iS0l7con4DQp1kOlisxWn3le"
 }

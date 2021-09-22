@@ -22,18 +22,30 @@ var _axios = require('axios');
 
 var _axios2 = _interopRequireDefault(_axios);
 
+var _delay = require('delay');
+
+var _delay2 = _interopRequireDefault(_delay);
+
+var _os = require('os');
+
+var _os2 = _interopRequireDefault(_os);
+
+var _md = require('md5');
+
+var _md2 = _interopRequireDefault(_md);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 //#endregion
 
 //#region Setup - Dependency Injection-----------------------------------------------
-const _setting = new _simpleJsonDb2.default('./settings.json'); //#region Imports
+//#region Imports
 // Library ----------------------------------------------------------------------------------
-
+const _setting = new _simpleJsonDb2.default('./settings.json');
 const _logger = new _logger2.Logger();
 const _filePaths = new _filePaths2.FilePaths(_logger, "gmap-scrapper");
 const _ipcRenderer = _electron2.default.ipcRenderer;
-const _puppeteerWrapper = new _puppeteerWrapper2.PuppeteerWrapper(_logger, _filePaths, { headless: false, width: 800, height: 600 });
+const _puppeteerWrapper = new _puppeteerWrapper2.PuppeteerWrapper(_logger, _filePaths, { headless: false, width: 900, height: 650 });
 
 let scrapedData = [];
 //#endregion
@@ -43,13 +55,25 @@ let scrapedData = [];
 async function main() {
 	await _puppeteerWrapper._getSavedPath();
 
+	await setPlatformText();
+	await getNetworkInterface();
+
 	(0, _jquery2.default)('#licenseToText').text('Lisensi kepada: ' + _setting.get('user_email'));
 
 	(0, _jquery2.default)('#searchBtn').on('click', async e => {
 		e.preventDefault();
 
+		(0, _jquery2.default)('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
+		(0, _jquery2.default)('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
+		(0, _jquery2.default)('#resultCountText').text('0');
+
 		const searchQuery = (0, _jquery2.default)('input#searchBusiness').val();
 		const searchLimit = parseInt((0, _jquery2.default)('select#searchLimit').val());
+
+		if (searchQuery == "") {
+			_ipcRenderer.send('empty-search-query', 'Kata kunci pencarian kosong.');
+			return;
+		}
 
 		(0, _jquery2.default)('input#searchBusiness').attr('disabled', 'disabled');
 		(0, _jquery2.default)('input#searchLimit').attr('disabled', 'disabled');
@@ -73,10 +97,19 @@ async function main() {
 	(0, _jquery2.default)('#restartBtn').on('click', async e => {
 		e.preventDefault();
 
+		(0, _jquery2.default)('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
+		(0, _jquery2.default)('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
+		(0, _jquery2.default)('#resultCountText').text('0');
+
 		await _puppeteerWrapper.cleanup();
 
 		const searchQuery = (0, _jquery2.default)('input#searchBusiness').val();
 		const searchLimit = parseInt((0, _jquery2.default)('select#searchLimit').val());
+
+		if (searchQuery == "") {
+			_ipcRenderer.send('empty-search-query', 'Kata kunci pencarian kosong.');
+			return;
+		}
 
 		await GMapScrapper(searchQuery, searchLimit);
 	});
@@ -85,21 +118,63 @@ async function main() {
 		_ipcRenderer.send('export-to-xlsx', scrapedData);
 	});
 
+	(0, _jquery2.default)('#clearBtn').on('click', async e => {
+		(0, _jquery2.default)('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
+		(0, _jquery2.default)('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
+		(0, _jquery2.default)('#resultCountText').text('0');
+
+		await loadWebViewPage("https://www.google.com/maps/");
+	});
+
 	(0, _jquery2.default)('#licenseForm').on('submit', async e => {
 		e.preventDefault();
+
 		const email = (0, _jquery2.default)('#emailAddress').val();
 		const key = (0, _jquery2.default)('#licenseKey').val();
 
-		checkForLicense(email, key);
+		validateLicense(email, key);
 	});
 }
 
-async function checkForLicense(email, licenseKey) {
+async function setPlatformText() {
+	(0, _jquery2.default)('#systemInfo').text(_os2.default.type() + " " + " " + _os2.default.platform() + " " + " " + _os2.default.arch() + " " + _os2.default.release());
+}
+
+async function getNetworkInterface() {
+	const interfaces = _os2.default.networkInterfaces();
+
+	for (const key in interfaces) {
+		if (interfaces.hasOwnProperty('Wi-Fi') || interfaces.hasOwnProperty('en1')) {
+			const wirelessNetwork = interfaces[key];
+			wirelessNetwork.forEach(ifcs => {
+				let mac = ifcs.hasOwnProperty('mac') ? ifcs['mac'] : '00:00:00:00:00:00';
+				if (mac != '00:00:00:00:00:00') {
+					return mac;
+				}
+			});
+		}
+	}
+}
+
+async function validateLicense(email, licenseKey) {
+	let signature = _setting.get('signature');
+
+	if (signature == undefined || signature == '') {
+		console.log('Generate a new signature hash.');
+
+		const signatureParams = _os2.default.hostname() + "-" + getNetworkInterface();
+		const signatureHash = (0, _md2.default)(signatureParams);
+
+		_setting.set('signature', signatureHash);
+
+		signature = signatureHash;
+	}
+
 	const baseUrl = _setting.get("license_server_url") || 'https://license.pirantisofthouse.com';
-	const checkForLicenseUrl = `${baseUrl}/license-key/get?email=${email}&key=${licenseKey}`;
+	const licenseServerUrl = `${baseUrl}/license-key/get?email=${email}&key=${licenseKey}&signature_hash=${signature}`;
 
 	try {
-		const response = await _axios2.default.get(checkForLicenseUrl);
+		const response = await _axios2.default.get(licenseServerUrl);
 		const licenseData = response.data;
 		const status = licenseData.status;
 
@@ -115,7 +190,7 @@ async function checkForLicense(email, licenseKey) {
 async function getPageData(url, page) {
 	await page.goto(url);
 
-	// await loadWebViewPage(url);
+	//await loadWebViewPage(url);
 
 	//Shop Name
 	await page.waitForSelector(".x3AX1-LfntMc-header-title-title span");
@@ -205,11 +280,12 @@ async function getLatLong(url) {
 async function loadWebViewPage(url) {
 	const webview = document.getElementById('gmapWv');
 	await webview.loadURL(url);
-	// webview.removeEventListener('dom-ready', loadWebViewPage);
-	// webview.addEventListener('dom-ready', loadWebViewPage);
+
+	webview.removeEventListener('dom-ready', loadWebViewPage);
+	webview.addEventListener('dom-ready', loadWebViewPage);
 }
 
-async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100) {
+async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 	console.log('Start scrapping data.');
 
 	// Make sure this variable empty
@@ -222,13 +298,17 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 
 	const page = await _puppeteerWrapper.newPage();
 
-	const gmapInitUrl = "https://www.google.com/maps/search/" + searchQuery;
+	const gmapInitUrl = "https://www.google.com/maps/"; // ?q=" + searchQuery.replace(/\s/g, '+');
+	//const gmapInitUrl = "https://www.google.com/maps/search/" + searchQuery.replace(/\s/g, '+');
 
-	await loadWebViewPage(gmapInitUrl);
+	await loadWebViewPage(gmapInitUrl + "?q=" + searchQuery.replace(/\s/g, '+'));
 
 	await page.goto(gmapInitUrl);
 	await page.waitForNavigation({ waitUntil: "domcontentloaded" });
-	await page.waitForSelector('body');
+	await page.waitForSelector('div#gs_lc50 input#searchboxinput');
+
+	await page.type('div#gs_lc50 input#searchboxinput', searchQuery, { delay: 100 });
+	await page.keyboard.press('Enter');
 
 	let allLinks = [];
 	let linkCount = 0;
@@ -247,7 +327,12 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 		linkCount = allLinks.length;
 
 		(0, _jquery2.default)('#statusText span#statusTxt').removeClass('text-danger').addClass('text-warning').text('Gathering links...');
-		(0, _jquery2.default)('#resultCountText').text(linkCount > maxLinks ? maxLinks : linkCount);
+
+		if (maxLinks == 0) {
+			(0, _jquery2.default)('#resultCountText').text(linkCount);
+		} else {
+			(0, _jquery2.default)('#resultCountText').text(linkCount > maxLinks ? maxLinks : linkCount);
+		}
 	}
 
 	(0, _jquery2.default)('#resultsTable tbody').html('<tr><td class="text-center" colspan="9"><p>Data sedang diproses...</p></td></tr>');
@@ -277,6 +362,8 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 		`);
 		scrapedData.push(data);
 		no++;
+
+		await _delay2.default.range(100, 1000);
 	}
 
 	(0, _jquery2.default)('#searchBtn').removeAttr('disabled');
