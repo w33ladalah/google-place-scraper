@@ -35,7 +35,6 @@ async function createWindow() {
 		}
 	});
 
-
 	checkForUpdate();
 
 	mainWindow.maximize();
@@ -85,15 +84,8 @@ function reloadApp() {
 }
 
 async function checkForUpdate() {
-	const mode = dbSetting.get("mode");
-
-	let checkForUpdateUrl = `http://127.0.0.1`;
-
-	if (mode == 'production') {
-		checkForUpdateUrl = `https://license.pirantisofthouse.com`;
-	}
-
-	checkForUpdateUrl = `${checkForUpdateUrl}/check-for-update`;
+	const baseUrl = dbSetting.get("license_server_url") || 'https://license.pirantisofthouse.com';
+	const checkForUpdateUrl = `${baseUrl}/check-for-update`;
 
 	try {
 		const response = await axios.get(checkForUpdateUrl);
@@ -104,28 +96,21 @@ async function checkForUpdate() {
 		if(status == 1) {
 			dialog.showMessageBox({
 				title: 'Update Tersedia.',
-				message: 'GMap Scraper versi '+version+' telah tesedia. Silahkan lakukan download di website GMap Scraper.'
+				message: 'GMap Scraper versi '+version+' telah tersedia. Silahkan lakukan download di website GMap Scraper.'
 			});
 		}
 	} catch (exception) {
 		dialog.showErrorBox('Gagal melakukan koneksi ke server', 'Gagal melakukan koneksi ke server karena kemungkinan Anda tidak terhubung dengan internet atau koneksi internet Anda yang kurang stabil. Harap cek koneksi internet Anda.')
-		reloadApp();
+		app.exit(0);
 	}
 
 }
 
 async function checkForLicense() {
-	const mode = dbSetting.get("mode");
 	const email = dbSetting.get("user_email");
 	const licenseKey = dbSetting.get("user_license");
-
-	let licenseServerUrl = `http://127.0.0.1`;
-
-	if (mode == 'production') {
-		licenseServerUrl = `https://license.pirantisofthouse.com`;
-	}
-
-	licenseServerUrl = `${licenseServerUrl}/license-key/get?email=${email}&key=${licenseKey}`;
+	const baseUrl = dbSetting.get("license_server_url") || 'https://license.pirantisofthouse.com';
+	const licenseServerUrl = `${baseUrl}/license-key/get?email=${email}&key=${licenseKey}`;
 
 	try {
 		const response = await axios.get(licenseServerUrl);
@@ -225,10 +210,10 @@ ipcMain.on('export-to-xlsx', async function (evt, data) {
 });
 
 ipcMain.on('chrome-not-found', async function (evt, data) {
-	await dialog.showErrorBox("Google Chrome tidak ditemukan", "Tidak dapat menemukan Google Chrome di komputer Anda. Kemungkinan Anda belum meng-install-nya atau pilih instalasi Chrome Anda seara manual.");
+	await dialog.showErrorBox("Google Chrome tidak ditemukan", "Tidak dapat menemukan Google Chrome di komputer Anda. Kemungkinan Anda belum meng-install-nya atau pilih file instalasi Chrome Anda secara manual.");
 
 	const chromePathDialog = await dialog.showOpenDialog({
-		title: "Pilih instalasi Google Chrome",
+		title: "Pilih file instalasi Google Chrome",
 	});
 
 	if (!chromePathDialog.canceled) {
@@ -239,10 +224,14 @@ ipcMain.on('chrome-not-found', async function (evt, data) {
     }
 });
 
-ipcMain.on('license-updated', async function(evt, data) {
-	await dialog.showMessageBox({
-		title: 'License Key Telah Diupdate',
-		message: 'Anda telah memasukkan license key milik Anda. Aplikasi akan dimuat ulang. Terima kasih.',
-	});
-	await reloadApp();
+ipcMain.on('license-updated', async function (evt, data) {
+	if (data == 'success') {
+		await dialog.showMessageBox({
+			title: 'License Key Aplikasi',
+			message: 'License Key yang Anda masukkan berhasil divalidasi oleh server. Aplikasi akan dimuat ulang.',
+		});
+		await reloadApp();
+	} else {
+		await dialog.showErrorBox('License Key Aplikasi', 'License Key yang Anda masukkan salah. Silahkan ulangi lagi.');
+    }
 });

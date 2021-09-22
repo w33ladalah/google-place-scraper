@@ -18,14 +18,18 @@ var _simpleJsonDb = require('simple-json-db');
 
 var _simpleJsonDb2 = _interopRequireDefault(_simpleJsonDb);
 
+var _axios = require('axios');
+
+var _axios2 = _interopRequireDefault(_axios);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 //#endregion
 
 //#region Setup - Dependency Injection-----------------------------------------------
-//#region Imports
+const _setting = new _simpleJsonDb2.default('./settings.json'); //#region Imports
 // Library ----------------------------------------------------------------------------------
-const _setting = new _simpleJsonDb2.default('./settings.json');
+
 const _logger = new _logger2.Logger();
 const _filePaths = new _filePaths2.FilePaths(_logger, "gmap-scrapper");
 const _ipcRenderer = _electron2.default.ipcRenderer;
@@ -86,11 +90,26 @@ async function main() {
 		const email = (0, _jquery2.default)('#emailAddress').val();
 		const key = (0, _jquery2.default)('#licenseKey').val();
 
-		_setting.set('user_email', email);
-		_setting.set('user_license', key);
-
-		_ipcRenderer.send('license-updated', "ok");
+		checkForLicense(email, key);
 	});
+}
+
+async function checkForLicense(email, licenseKey) {
+	const baseUrl = _setting.get("license_server_url") || 'https://license.pirantisofthouse.com';
+	const checkForLicenseUrl = `${baseUrl}/license-key/get?email=${email}&key=${licenseKey}`;
+
+	try {
+		const response = await _axios2.default.get(checkForLicenseUrl);
+		const licenseData = response.data;
+		const status = licenseData.status;
+
+		_setting.set('user_email', email);
+		_setting.set('user_license', licenseKey);
+
+		if (status === 1) _ipcRenderer.send('license-updated', "success");else _ipcRenderer.send('license-updated', "failed");
+	} catch (ex) {
+		console.log(ex);
+	}
 }
 
 async function getPageData(url, page) {

@@ -6,6 +6,7 @@ import { FilePaths } from './lib/file-paths.js';
 import { PuppeteerWrapper } from './lib/puppeteer-wrapper';
 import $ from 'jquery';
 import JSONdb from 'simple-json-db';
+import axios from 'axios';
 //#endregion
 
 //#region Setup - Dependency Injection-----------------------------------------------
@@ -68,14 +69,33 @@ async function main() {
 
 	$('#licenseForm').on('submit', async (e) => {
 		e.preventDefault();
+
 		const email = $('#emailAddress').val();
 		const key = $('#licenseKey').val();
 
-		_setting.set('user_email', email);
-		_setting.set('user_license', key);
-
-		_ipcRenderer.send('license-updated', "ok");
+		checkForLicense(email, key);
 	});
+}
+
+async function checkForLicense(email, licenseKey) {
+	const baseUrl = _setting.get("license_server_url") || 'https://license.pirantisofthouse.com';
+	const checkForLicenseUrl = `${baseUrl}/license-key/get?email=${email}&key=${licenseKey}`;
+
+	try {
+		const response = await axios.get(checkForLicenseUrl);
+		const licenseData = response.data;
+		const status = licenseData.status;
+
+		_setting.set('user_email', email);
+		_setting.set('user_license', licenseKey);
+
+		if (status === 1)
+			_ipcRenderer.send('license-updated', "success");
+		else
+			_ipcRenderer.send('license-updated', "failed");
+	} catch (ex) {
+		console.log(ex);
+    }
 }
 
 async function getPageData(url, page) {
