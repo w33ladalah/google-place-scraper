@@ -65,7 +65,7 @@ async function main() {
 
 		(0, _jquery2.default)('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
 		(0, _jquery2.default)('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
-		(0, _jquery2.default)('#resultCountText').text('0');
+		(0, _jquery2.default)('#resultCountText, #validResultCountText').text('0');
 
 		const searchQuery = (0, _jquery2.default)('input#searchBusiness').val();
 		const searchLimit = parseInt((0, _jquery2.default)('select#searchLimit').val());
@@ -99,7 +99,7 @@ async function main() {
 
 		(0, _jquery2.default)('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
 		(0, _jquery2.default)('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
-		(0, _jquery2.default)('#resultCountText').text('0');
+		(0, _jquery2.default)('#resultCountText, #validResultCountText').text('0');
 
 		await _puppeteerWrapper.cleanup();
 
@@ -121,7 +121,7 @@ async function main() {
 	(0, _jquery2.default)('#clearBtn').on('click', async e => {
 		(0, _jquery2.default)('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
 		(0, _jquery2.default)('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
-		(0, _jquery2.default)('#resultCountText').text('0');
+		(0, _jquery2.default)('#resultCountText, #validResultCountText').text('0');
 
 		await loadWebViewPage("https://www.google.com/maps/");
 	});
@@ -193,17 +193,36 @@ async function getPageData(url, page) {
 	//await loadWebViewPage(url);
 
 	//Shop Name
-	await page.waitForSelector(".x3AX1-LfntMc-header-title-title span");
+	try {
+		await page.waitForSelector(".x3AX1-LfntMc-header-title-title span", { timeout: 3 });
+	} catch (ex) {
+		console.log('No rating found.');
+	}
 	const shopName = await page.$eval(".x3AX1-LfntMc-header-title-title span", name => name.textContent);
 
-	await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf");
+	try {
+		await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf", { timeout: 3 });
+	} catch (ex) {
+		console.log('No rating found.');
+	}
+
 	const reviewRating = await page.$eval(".x3AX1-LfntMc-header-title-ij8cu-haAclf span > span > span", rating => rating.textContent);
 
-	await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf");
+	try {
+		await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf", { timeout: 3 });
+	} catch (ex) {
+		console.log('No review found.');
+	}
+
 	const reviewCount = await page.$eval(".x3AX1-LfntMc-header-title-ij8cu-haAclf span button.widget-pane-link", review => review.textContent);
 
 	//Shop Address
-	await page.waitForSelector(".QSFF4-text.gm2-body-2:nth-child(1)");
+	try {
+		await page.waitForSelector(".QSFF4-text.gm2-body-2:nth-child(1)", { timeout: 3 });
+	} catch (ex) {
+		console.log('No address found.');
+	}
+
 	let address = await page.$$eval("#pane > div > div > div > div > div > div > button > div > div > div", divs => Array.from(divs).map(div => div.innerText).find(address => address));
 
 	if (address === undefined) {
@@ -214,7 +233,7 @@ async function getPageData(url, page) {
 	try {
 		await page.waitForSelector(".HY5zDd", { timeout: 3 });
 	} catch (ex) {
-		console.log('No element found.');
+		console.log('No website found.');
 	}
 
 	const website = await page.$$eval("#pane > div > div > div > div > div > div > button > div > div > div", divs => Array.from(divs).map(div => div.innerText).find(link => /^((https?|ftp|smtp):\/\/)?(www.)?[a-z0-9]+(\.[a-z]{2,}){1,3}(#?\/?[a-zA-Z0-9#]+)*\/?(\?[a-zA-Z0-9-_]+=[a-zA-Z0-9-%]+&?)?$/.test(link)));
@@ -294,7 +313,7 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 	(0, _jquery2.default)('#searchBtn').attr('disabled', 'disabled');
 	(0, _jquery2.default)('#stopBtn').removeAttr('disabled');
 	(0, _jquery2.default)('#restartBtn').removeAttr('disabled');
-	(0, _jquery2.default)('#statusText span#statusTxt').removeClass('text-success').addClass('text-danger').text('Start scraping...');
+	(0, _jquery2.default)('span#statusTxt').removeClass('text-success').addClass('text-danger').text('Start scraping...');
 
 	const page = await _puppeteerWrapper.newPage();
 
@@ -318,30 +337,44 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 
 		allLinks.push(...(await getLinks(page)));
 
-		await page.$$eval("button", elements => {
-			return Array.from(elements).find(el => el.getAttribute("aria-label") === "Halaman berikutnya" || el.getAttribute("aria-label") === "Next page").click();
+		allLinks = allLinks.filter((value, index, self) => {
+			return self.indexOf(value) === index;
 		});
-
-		await page.waitForNavigation({ waitUntil: "load" });
 
 		linkCount = allLinks.length;
 
-		(0, _jquery2.default)('#statusText span#statusTxt').removeClass('text-danger').addClass('text-warning').text('Gathering links...');
+		(0, _jquery2.default)('span#statusTxt').removeClass('text-danger').addClass('text-warning').text('Gathering links...');
 
 		if (maxLinks == 0) {
 			(0, _jquery2.default)('#resultCountText').text(linkCount);
 		} else {
 			(0, _jquery2.default)('#resultCountText').text(linkCount > maxLinks ? maxLinks : linkCount);
 		}
+
+		await page.$$eval("button", elements => {
+			return Array.from(elements).find(el => el.getAttribute("aria-label") === "Halaman berikutnya" || el.getAttribute("aria-label") === "Next page").click();
+		});
+
+		await page.waitForNavigation({ waitUntil: "load" });
 	}
 
 	(0, _jquery2.default)('#resultsTable tbody').html('<tr><td class="text-center" colspan="9"><p>Data sedang diproses...</p></td></tr>');
 
+	let uniqueLinks = allLinks.filter((value, index, self) => {
+		return self.indexOf(value) === index;
+	});
+
+	const linksDb = new _simpleJsonDb2.default('data/links-' + searchQuery.replace(/\s/g, '-') + '-' + Date.now() + '.json');
+
+	linksDb.set('data', uniqueLinks);
+
+	(0, _jquery2.default)('#validResultCountText').text(uniqueLinks.length);
+
 	let no = 1;
-	for (let link of allLinks) {
+	for (let link of uniqueLinks) {
 		if (maxLinks !== 0 && no > maxLinks) break;
 
-		(0, _jquery2.default)('#statusText span#statusTxt').removeClass('text-warning').addClass('text-success').text('Processing "' + link + '"');
+		(0, _jquery2.default)('span#statusTxt').removeClass('text-warning').addClass('text-success').text('Processing "' + link + '"');
 
 		const data = await getPageData(link, page);
 
@@ -375,7 +408,7 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 
 	await _puppeteerWrapper.cleanup();
 
-	(0, _jquery2.default)('#statusText span#statusTxt').removeClass('text-danger').addClass('text-success').text('Done!');
+	(0, _jquery2.default)('span#statusTxt').removeClass('text-danger').addClass('text-success').text('Done!');
 }
 
 _ipcRenderer.on('chrome-path-is-set', (event, arg) => {

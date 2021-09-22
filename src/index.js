@@ -38,7 +38,7 @@ async function main() {
 
 		$('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
 		$('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
-		$('#resultCountText').text('0');
+		$('#resultCountText, #validResultCountText').text('0');
 
 		const searchQuery = $('input#searchBusiness').val();
 		const searchLimit = parseInt($('select#searchLimit').val());
@@ -72,7 +72,7 @@ async function main() {
 
 		$('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
 		$('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
-		$('#resultCountText').text('0');
+		$('#resultCountText, #validResultCountText').text('0');
 
 		await _puppeteerWrapper.cleanup();
 
@@ -94,7 +94,7 @@ async function main() {
 	$('#clearBtn').on('click', async (e) => {
 		$('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
 		$('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
-		$('#resultCountText').text('0');
+		$('#resultCountText, #validResultCountText').text('0');
 
 		await loadWebViewPage("https://www.google.com/maps/");
 	});
@@ -170,26 +170,45 @@ async function getPageData(url, page) {
 	//await loadWebViewPage(url);
 
 	//Shop Name
-	await page.waitForSelector(".x3AX1-LfntMc-header-title-title span");
+	try {
+		await page.waitForSelector(".x3AX1-LfntMc-header-title-title span", { timeout: 3 });
+	} catch (ex) {
+		console.log('No rating found.');
+	}
 	const shopName = await page.$eval(
 		".x3AX1-LfntMc-header-title-title span",
 		(name) => name.textContent
 	);
 
-	await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf");
+	try {
+		await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf", { timeout: 3 });
+	} catch (ex) {
+		console.log('No rating found.');
+	}
+
 	const reviewRating = await page.$eval(
 		".x3AX1-LfntMc-header-title-ij8cu-haAclf span > span > span",
 		(rating) => rating.textContent
 	);
 
-	await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf");
+	try {
+		await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf", { timeout: 3 });
+	} catch (ex) {
+		console.log('No review found.');
+	}
+
 	const reviewCount = await page.$eval(
 		".x3AX1-LfntMc-header-title-ij8cu-haAclf span button.widget-pane-link",
 		(review) => review.textContent
 	);
 
 	//Shop Address
-	await page.waitForSelector(".QSFF4-text.gm2-body-2:nth-child(1)");
+	try {
+		await page.waitForSelector(".QSFF4-text.gm2-body-2:nth-child(1)", { timeout: 3 });
+	} catch (ex) {
+		console.log('No address found.');
+	}
+
 	let address = await page.$$eval(
 		"#pane > div > div > div > div > div > div > button > div > div > div",
 		(divs) =>
@@ -209,7 +228,7 @@ async function getPageData(url, page) {
 	try {
 		await page.waitForSelector(".HY5zDd", { timeout: 3 });
 	} catch (ex) {
-		console.log('No element found.');
+		console.log('No website found.');
 	}
 
 	const website = await page.$$eval(
@@ -320,7 +339,7 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 	$('#searchBtn').attr('disabled', 'disabled');
 	$('#stopBtn').removeAttr('disabled');
 	$('#restartBtn').removeAttr('disabled');
-	$('#statusText span#statusTxt').removeClass('text-success').addClass('text-danger').text('Start scraping...');
+	$('span#statusTxt').removeClass('text-success').addClass('text-danger').text('Start scraping...');
 
 	const page = await _puppeteerWrapper.newPage();
 
@@ -352,6 +371,20 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 
 		allLinks.push(...(await getLinks(page)));
 
+		allLinks = allLinks.filter((value, index, self) => {
+			return self.indexOf(value) === index;
+		});
+
+		linkCount = allLinks.length;
+
+		$('span#statusTxt').removeClass('text-danger').addClass('text-warning').text('Gathering links...');
+
+		if (maxLinks == 0) {
+			$('#resultCountText').text(linkCount);
+		} else {
+			$('#resultCountText').text(linkCount > maxLinks ? maxLinks : linkCount);
+		}
+
 		await page.$$eval("button", (elements) => {
 			return Array.from(elements)
 				.find((el) => (el.getAttribute("aria-label") === "Halaman berikutnya" || el.getAttribute("aria-label") === "Next page"))
@@ -359,25 +392,25 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 		});
 
 		await page.waitForNavigation({ waitUntil: "load" });
-
-		linkCount = allLinks.length;
-
-		$('#statusText span#statusTxt').removeClass('text-danger').addClass('text-warning').text('Gathering links...');
-
-		if (maxLinks == 0) {
-			$('#resultCountText').text(linkCount);
-		} else {
-			$('#resultCountText').text(linkCount > maxLinks ? maxLinks : linkCount);
-		}
 	}
 
 	$('#resultsTable tbody').html('<tr><td class="text-center" colspan="9"><p>Data sedang diproses...</p></td></tr>');
 
+	let uniqueLinks = allLinks.filter((value, index, self) => {
+		return self.indexOf(value) === index;
+	});
+
+	const linksDb = new JSONdb('data/links-' + searchQuery.replace(/\s/g, '-') + '-' + Date.now() + '.json');
+
+	linksDb.set('data', uniqueLinks);
+
+	$('#validResultCountText').text(uniqueLinks.length);
+
 	let no = 1;
-	for (let link of allLinks) {
+	for (let link of uniqueLinks) {
 		if(maxLinks !== 0 && no > maxLinks) break;
 
-		$('#statusText span#statusTxt').removeClass('text-warning').addClass('text-success').text('Processing "'+link+'"');
+		$('span#statusTxt').removeClass('text-warning').addClass('text-success').text('Processing "'+link+'"');
 
 		const data = await getPageData(link, page);
 
@@ -411,7 +444,7 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 
 	await _puppeteerWrapper.cleanup();
 
-	$('#statusText span#statusTxt').removeClass('text-danger').addClass('text-success').text('Done!');
+	$('span#statusTxt').removeClass('text-danger').addClass('text-success').text('Done!');
 }
 
 _ipcRenderer.on('chrome-path-is-set', (event, arg) => {

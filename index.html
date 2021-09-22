@@ -79,7 +79,7 @@
                                     <button type="button" id="stopBtn" disabled class="btn btn-danger mb-3">Stop</button>
                                     <button type="button" id="restartBtn" disabled class="btn btn-info mb-3">Restart</button>
                                     <button type="button" id="exportBtn" class="btn btn-primary mb-3">Export ke Excel</button>
-                                    
+
                                 </div>
                             </form>
                         </div>
@@ -124,9 +124,12 @@
             <hr class="mb-0">
             <div class="row mt-2 bg-default">
                 <div class="col-12" style="font-size: 0.75rem;">
-                    <p class="my-0 py-0">Chrome/Chromium: <span id="chromeInfo"></span>, System info: <span id="systemInfo"></span></p>
-                    <p class="my-0 py-0" id="licenseToText"></p>
-                    <p id="statusText">Ditemukan: <span id="resultCountText">0</span> hasil. Status: <span id="statusTxt" class="text-success">Ready</span></p>
+                    <p class="my-0 py-0">Chrome/Chromium: <span id="chromeInfo">-</span>, System info: <span id="systemInfo">-</span>, Lisensi kepada: <span id="licenseToText">-</span></p>
+                    <p class="my-0 py-0" id="statusText">
+                        Ditemukan: <span id="resultCountText" class="text-primary font-weight-bold">0</span> listing.
+                        Hasil yang valid: <span id="validResultCountText" class="text-success font-weight-bold">0</span> listing.
+                    </p>
+                    <p class="my-0 py-0" id="statusText2">Status: <span id="statusTxt" class="text-success">Ready</span></p>
                 </div>
             </div>
         </div>
