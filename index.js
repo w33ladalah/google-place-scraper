@@ -1,6 +1,7 @@
 const electron = require('electron');
 const { globalShortcut } = require('electron');
 const XLSX = require('xlsx');
+const axios = require('axios');
 
 // Module to control application life.
 const app = electron.app;
@@ -11,13 +12,14 @@ const BrowserWindow = electron.BrowserWindow;
 const path = require('path');
 const url = require('url');
 const JSONdb = require('simple-json-db');
-const db = new JSONdb('./settings.json');
+const dbSetting = new JSONdb('./settings.json');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
 
-function createWindow() {
+async function createWindow() {
+
 	// Create the browser window.
 	mainWindow = new BrowserWindow({
 		width: 1366,
@@ -33,18 +35,17 @@ function createWindow() {
 		}
 	});
 
+
+	checkForUpdate();
+
 	mainWindow.maximize();
 	mainWindow.setMenuBarVisibility(false);
 
 	// and load the index.html of the app.
 	let fileHtml = 'index.html';
-	if (!checkForLicense()) {
+	console.log("license status: ", await checkForLicense());
+	if (await checkForLicense() == false) {
 		fileHtml = 'restricted.html';
-
-		dialog.showMessageBox({
-			title:"License Key GMap Scraper",
-			message: "Anda belum memasukkan license key GMap Scraper. Apabila Anda sudah memiliki license key tersebut, silahkan masukkan ke form yang tersedia."
-		});
 	}
 
 	mainWindow.loadURL(
@@ -78,8 +79,66 @@ function createWindow() {
 	// });
 }
 
-function checkForLicense() {
-	return false;
+function reloadApp() {
+	app.relaunch({ args: process.argv.slice(1).concat(['--relaunch']) })
+	app.exit(0)
+}
+
+async function checkForUpdate() {
+	const mode = dbSetting.get("mode");
+
+	let checkForUpdateUrl = `http://127.0.0.1`;
+
+	if (mode == 'production') {
+		checkForUpdateUrl = `https://license.pirantisofthouse.com`;
+	}
+
+	checkForUpdateUrl = `${checkForUpdateUrl}/check-for-update`;
+
+	try {
+		const response = await axios.get(checkForUpdateUrl);
+		const updateData = response.data;
+		const status = updateData.status;
+		const version = updateData.version || '1.0.2';
+
+		if(status == 1) {
+			dialog.showMessageBox({
+				title: 'Update Tersedia.',
+				message: 'GMap Scraper versi '+version+' telah tesedia. Silahkan lakukan download di website GMap Scraper.'
+			});
+		}
+	} catch (exception) {
+		dialog.showErrorBox('Gagal melakukan koneksi ke server', 'Gagal melakukan koneksi ke server karena kemungkinan Anda tidak terhubung dengan internet atau koneksi internet Anda yang kurang stabil. Harap cek koneksi internet Anda.')
+		reloadApp();
+	}
+
+}
+
+async function checkForLicense() {
+	const mode = dbSetting.get("mode");
+	const email = dbSetting.get("user_email");
+	const licenseKey = dbSetting.get("user_license");
+
+	let licenseServerUrl = `http://127.0.0.1`;
+
+	if (mode == 'production') {
+		licenseServerUrl = `https://license.pirantisofthouse.com`;
+	}
+
+	licenseServerUrl = `${licenseServerUrl}/license-key/get?email=${email}&key=${licenseKey}`;
+
+	try {
+		const response = await axios.get(licenseServerUrl);
+		const licenseData = response.data;
+		const status = licenseData.status;
+
+		return status === 1 ? true : false;
+	} catch (exception) {
+		dialog.showErrorBox('Gagal melakukan koneksi ke server', 'Gagal melakukan koneksi ke server karena kemungkinan Anda tidak terhubung dengan internet atau koneksi internet Anda yang kurang stabil. Harap cek koneksi internet Anda.')
+		return false;
+	}
+
+	reloadApp();
 }
 
 if (app.setAboutPanelOptions) app.setAboutPanelOptions({
@@ -115,7 +174,6 @@ app.on('activate', function () {
 const dialog = electron.dialog;
 const EXTENSIONS = "xls|xlsx|xlsm|xlsb|xml|csv|txt|dif|sylk|slk|prn|ods|fods|htm|html".split("|");
 ipcMain.on('export-to-xlsx', async function (evt, data) {
-	console.log(data);
 	if (data.length > 0) {
 		const wb = XLSX.utils.book_new();
 		wb.Props = {
@@ -175,9 +233,16 @@ ipcMain.on('chrome-not-found', async function (evt, data) {
 
 	if (!chromePathDialog.canceled) {
 		const chromePath = chromePathDialog.filePaths[0];
-		db.set("chrome_path", chromePath);
+		dbSetting.set("chrome_path", chromePath);
 
-		app.relaunch({ args: process.argv.slice(1).concat(['--relaunch']) })
-		app.exit(0)
+		reloadApp();
     }
+});
+
+ipcMain.on('license-updated', async function(evt, data) {
+	await dialog.showMessageBox({
+		title: 'License Key Telah Diupdate',
+		message: 'Anda telah memasukkan license key milik Anda. Aplikasi akan dimuat ulang. Terima kasih.',
+	});
+	await reloadApp();
 });

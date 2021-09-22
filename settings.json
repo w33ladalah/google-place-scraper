@@ -1,3 +1,6 @@
 {
-    "chrome_path": "/usr/bin/google-chrome"
+    "chrome_path": "/usr/bin/google-chrome",
+    "user_email": "hendrothemail@gmail.com",
+    "user_license": "$2y$10$6y3TKXewji1cNOV5Kq8UQuU0Lrb5Bre5zFI.z8S1Qyu1UXzgNveFS",
+    "mode": "local"
 }

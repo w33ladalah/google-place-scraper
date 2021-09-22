@@ -14,14 +14,19 @@ var _jquery = require('jquery');
 
 var _jquery2 = _interopRequireDefault(_jquery);
 
+var _simpleJsonDb = require('simple-json-db');
+
+var _simpleJsonDb2 = _interopRequireDefault(_simpleJsonDb);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 //#endregion
 
 //#region Setup - Dependency Injection-----------------------------------------------
-const _logger = new _logger2.Logger(); //#region Imports
+//#region Imports
 // Library ----------------------------------------------------------------------------------
-
+const _setting = new _simpleJsonDb2.default('./settings.json');
+const _logger = new _logger2.Logger();
 const _filePaths = new _filePaths2.FilePaths(_logger, "gmap-scrapper");
 const _ipcRenderer = _electron2.default.ipcRenderer;
 const _puppeteerWrapper = new _puppeteerWrapper2.PuppeteerWrapper(_logger, _filePaths, { headless: false, width: 800, height: 600 });
@@ -33,6 +38,8 @@ let scrapedData = [];
 
 async function main() {
 	await _puppeteerWrapper._getSavedPath();
+
+	(0, _jquery2.default)('#licenseToText').text('Lisensi kepada: ' + _setting.get('user_email'));
 
 	(0, _jquery2.default)('#searchBtn').on('click', async e => {
 		e.preventDefault();
@@ -72,6 +79,17 @@ async function main() {
 
 	(0, _jquery2.default)('#exportBtn').on('click', async e => {
 		_ipcRenderer.send('export-to-xlsx', scrapedData);
+	});
+
+	(0, _jquery2.default)('#licenseForm').on('submit', async e => {
+		e.preventDefault();
+		const email = (0, _jquery2.default)('#emailAddress').val();
+		const key = (0, _jquery2.default)('#licenseKey').val();
+
+		_setting.set('user_email', email);
+		_setting.set('user_license', key);
+
+		_ipcRenderer.send('license-updated', "ok");
 	});
 }
 

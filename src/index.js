@@ -5,9 +5,11 @@ import { Logger } from './lib/logger';
 import { FilePaths } from './lib/file-paths.js';
 import { PuppeteerWrapper } from './lib/puppeteer-wrapper';
 import $ from 'jquery';
+import JSONdb from 'simple-json-db';
 //#endregion
 
 //#region Setup - Dependency Injection-----------------------------------------------
+const _setting = new JSONdb('./settings.json');
 const _logger = new Logger();
 const _filePaths = new FilePaths(_logger, "gmap-scrapper");
 const _ipcRenderer = electron.ipcRenderer;
@@ -21,6 +23,8 @@ let scrapedData = [];
 
 async function main() {
 	await _puppeteerWrapper._getSavedPath();
+
+	$('#licenseToText').text('Lisensi kepada: ' + _setting.get('user_email'));
 
 	$('#searchBtn').on('click', async (e) => {
 		e.preventDefault();
@@ -60,6 +64,17 @@ async function main() {
 
 	$('#exportBtn').on('click', async (e) => {
 		_ipcRenderer.send('export-to-xlsx', scrapedData);
+	});
+
+	$('#licenseForm').on('submit', async (e) => {
+		e.preventDefault();
+		const email = $('#emailAddress').val();
+		const key = $('#licenseKey').val();
+
+		_setting.set('user_email', email);
+		_setting.set('user_license', key);
+
+		_ipcRenderer.send('license-updated', "ok");
 	});
 }
 
