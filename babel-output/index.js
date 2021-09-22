@@ -87,6 +87,7 @@ async function main() {
 
 	(0, _jquery2.default)('#licenseForm').on('submit', async e => {
 		e.preventDefault();
+
 		const email = (0, _jquery2.default)('#emailAddress').val();
 		const key = (0, _jquery2.default)('#licenseKey').val();
 

@@ -1,6 +1,6 @@
 {
-    "chrome_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "chrome_path": "/usr/bin/google-chrome",
     "user_email": "hendrothemail@gmail.com",
-    "user_license": "$2y$10$MdNG23VuIRyFgL4YmenSZurI/N0lAkkZ6tQF3RS07ED88neLlUM4O",
+    "user_license": "$2y$10$667OhSoUI2plS5PoLinXSOgFXhwM7iS0l7con4DQp1kOlisxWn3le",
     "license_server_url": "https://license.pirantisofthouse.com"
 }
