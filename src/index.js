@@ -26,7 +26,7 @@ let scrapedData = [];
 //#region Main ---------------------------------------------------------------------
 
 async function main() {
-	await _puppeteerWrapper._getSavedPath();
+	// await _puppeteerWrapper._getSavedPath();
 
 	await setPlatformText();
 	await getNetworkInterface();
