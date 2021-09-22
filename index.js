@@ -42,7 +42,6 @@ async function createWindow() {
 
 	// and load the index.html of the app.
 	let fileHtml = 'index.html';
-	console.log("license status: ", await checkForLicense());
 	if (await checkForLicense() == false) {
 		fileHtml = 'restricted.html';
 	}
@@ -68,14 +67,12 @@ async function createWindow() {
 		mainWindow = null;
 	});
 
-	// globalShortcut.register('Control+Shift+I', () => {
-	// 	// When the user presses Ctrl + Shift + I, this function will get called
-	// 	// You can modify this function to do other things, but if you just want
-	// 	// to disable the shortcut, you can just return false
-	// 	dialog.showMessageBox({ title: "GMap Scraper", message: "GMap Scraper"});
-
-	// 	return false;
-	// });
+	/*
+	globalShortcut.register('Control+Shift+I', () => {
+	 	dialog.showMessageBox({ title: "GMap Scraper", message: "GMap Scraper by Piranti Soft House"});
+	 	return false;
+	});
+	*/
 }
 
 function reloadApp() {
@@ -91,31 +88,37 @@ async function checkForUpdate() {
 		const response = await axios.get(checkForUpdateUrl);
 		const updateData = response.data;
 		const status = updateData.status;
-		const version = updateData.version || '1.0.2';
+		const version = updateData.version || '1.0.0';
+		const message = updateData.message || 'GMap Scraper versi terbaru telah tersedia. Silahkan lakukan download di website GMap Scraper atau hubungi developer aplikasi.';
 
 		if(status == 1) {
 			dialog.showMessageBox({
 				title: 'Update Tersedia.',
-				message: 'GMap Scraper versi '+version+' telah tersedia. Silahkan lakukan download di website GMap Scraper.'
+				version: version,
+				message: message
 			});
 		}
 	} catch (exception) {
 		dialog.showErrorBox('Gagal melakukan koneksi ke server', 'Gagal melakukan koneksi ke server karena kemungkinan Anda tidak terhubung dengan internet atau koneksi internet Anda yang kurang stabil. Harap cek koneksi internet Anda.')
 		app.exit(0);
 	}
-
 }
 
 async function checkForLicense() {
 	const email = dbSetting.get("user_email");
 	const licenseKey = dbSetting.get("user_license");
+	const signature = dbSetting.get('signature');
 	const baseUrl = dbSetting.get("license_server_url") || 'https://license.pirantisofthouse.com';
-	const licenseServerUrl = `${baseUrl}/license-key/get?email=${email}&key=${licenseKey}`;
+	const licenseServerUrl = `${baseUrl}/license-key/get?email=${email}&key=${licenseKey}&signature_hash=${signature}`;
 
 	try {
 		const response = await axios.get(licenseServerUrl);
 		const licenseData = response.data;
 		const status = licenseData.status;
+
+		if (status == false) {
+			//dialog.showErrorBox('Lisensi GMap Scraper', licenseData.message);
+        }
 
 		return status === 1 ? true : false;
 	} catch (exception) {
@@ -234,4 +237,11 @@ ipcMain.on('license-updated', async function (evt, data) {
 	} else {
 		await dialog.showErrorBox('License Key Aplikasi', 'License Key yang Anda masukkan salah. Silahkan ulangi lagi.');
     }
+});
+
+ipcMain.on('empty-search-query', async function (evt, data) {
+	dialog.showMessageBox({
+		title: "Pencarian",
+		message: data,
+    })
 });

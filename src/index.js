@@ -7,6 +7,9 @@ import { PuppeteerWrapper } from './lib/puppeteer-wrapper';
 import $ from 'jquery';
 import JSONdb from 'simple-json-db';
 import axios from 'axios';
+import delay from 'delay';
+import os from 'os';
+import md5 from 'md5';
 //#endregion
 
 //#region Setup - Dependency Injection-----------------------------------------------
@@ -15,7 +18,7 @@ const _logger = new Logger();
 const _filePaths = new FilePaths(_logger, "gmap-scrapper");
 const _ipcRenderer = electron.ipcRenderer;
 const _puppeteerWrapper = new PuppeteerWrapper(_logger, _filePaths,
-	{ headless: false, width: 800, height: 600 });
+	{ headless: false, width: 900, height: 650 });
 
 let scrapedData = [];
 //#endregion
@@ -23,15 +26,27 @@ let scrapedData = [];
 //#region Main ---------------------------------------------------------------------
 
 async function main() {
-	await _puppeteerWrapper._getSavedPath();
+	// await _puppeteerWrapper._getSavedPath();
+
+	await setPlatformText();
+	await getNetworkInterface();
 
 	$('#licenseToText').text('Lisensi kepada: ' + _setting.get('user_email'));
 
 	$('#searchBtn').on('click', async (e) => {
 		e.preventDefault();
 
+		$('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
+		$('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
+		$('#resultCountText, #validResultCountText').text('0');
+
 		const searchQuery = $('input#searchBusiness').val();
 		const searchLimit = parseInt($('select#searchLimit').val());
+
+		if (searchQuery == "") {
+			_ipcRenderer.send('empty-search-query', 'Kata kunci pencarian kosong.');
+			return;
+		}
 
 		$('input#searchBusiness').attr('disabled', 'disabled');
 		$('input#searchLimit').attr('disabled', 'disabled');
@@ -55,10 +70,19 @@ async function main() {
 	$('#restartBtn').on('click', async (e) => {
 		e.preventDefault();
 
+		$('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
+		$('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
+		$('#resultCountText, #validResultCountText').text('0');
+
 		await _puppeteerWrapper.cleanup();
 
 		const searchQuery = $('input#searchBusiness').val();
 		const searchLimit = parseInt($('select#searchLimit').val());
+
+		if (searchQuery == "") {
+			_ipcRenderer.send('empty-search-query', 'Kata kunci pencarian kosong.');
+			return;
+		}
 
 		await GMapScrapper(searchQuery, searchLimit);
 	});
@@ -67,22 +91,64 @@ async function main() {
 		_ipcRenderer.send('export-to-xlsx', scrapedData);
 	});
 
+	$('#clearBtn').on('click', async (e) => {
+		$('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
+		$('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
+		$('#resultCountText, #validResultCountText').text('0');
+
+		await loadWebViewPage("https://www.google.com/maps/");
+	});
+
 	$('#licenseForm').on('submit', async (e) => {
 		e.preventDefault();
 
 		const email = $('#emailAddress').val();
 		const key = $('#licenseKey').val();
 
-		checkForLicense(email, key);
+		validateLicense(email, key);
 	});
 }
 
-async function checkForLicense(email, licenseKey) {
+async function setPlatformText() {
+	$('#systemInfo').text(os.type() + " " + " " + os.platform() + " " + " " + os.arch() + " " + os.release());
+}
+
+async function getNetworkInterface() {
+	const interfaces = os.networkInterfaces();
+
+	for (const key in interfaces) {
+		if (interfaces.hasOwnProperty('Wi-Fi') ||
+			interfaces.hasOwnProperty('en1')) {
+			const wirelessNetwork = interfaces[key];
+			wirelessNetwork.forEach(ifcs => {
+				let mac = ifcs.hasOwnProperty('mac') ? ifcs['mac'] : '00:00:00:00:00:00';
+				if (mac != '00:00:00:00:00:00') {
+					return mac;
+                }
+			});
+        }
+    }
+}
+
+async function validateLicense(email, licenseKey) {
+	let signature = _setting.get('signature');
+
+	if (signature == undefined || signature == '') {
+		console.log('Generate a new signature hash.');
+
+		const signatureParams = os.hostname() + "-" + getNetworkInterface();
+		const signatureHash = md5(signatureParams);
+
+		_setting.set('signature', signatureHash);
+
+		signature = signatureHash;
+	}
+
 	const baseUrl = _setting.get("license_server_url") || 'https://license.pirantisofthouse.com';
-	const checkForLicenseUrl = `${baseUrl}/license-key/get?email=${email}&key=${licenseKey}`;
+	const licenseServerUrl = `${baseUrl}/license-key/get?email=${email}&key=${licenseKey}&signature_hash=${signature}`;
 
 	try {
-		const response = await axios.get(checkForLicenseUrl);
+		const response = await axios.get(licenseServerUrl);
 		const licenseData = response.data;
 		const status = licenseData.status;
 
@@ -101,29 +167,48 @@ async function checkForLicense(email, licenseKey) {
 async function getPageData(url, page) {
 	await page.goto(url);
 
-	// await loadWebViewPage(url);
+	//await loadWebViewPage(url);
 
 	//Shop Name
-	await page.waitForSelector(".x3AX1-LfntMc-header-title-title span");
+	try {
+		await page.waitForSelector(".x3AX1-LfntMc-header-title-title span", { timeout: 3 });
+	} catch (ex) {
+		console.log('No rating found.');
+	}
 	const shopName = await page.$eval(
 		".x3AX1-LfntMc-header-title-title span",
 		(name) => name.textContent
 	);
 
-	await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf");
+	try {
+		await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf", { timeout: 3 });
+	} catch (ex) {
+		console.log('No rating found.');
+	}
+
 	const reviewRating = await page.$eval(
 		".x3AX1-LfntMc-header-title-ij8cu-haAclf span > span > span",
 		(rating) => rating.textContent
 	);
 
-	await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf");
+	try {
+		await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf", { timeout: 3 });
+	} catch (ex) {
+		console.log('No review found.');
+	}
+
 	const reviewCount = await page.$eval(
 		".x3AX1-LfntMc-header-title-ij8cu-haAclf span button.widget-pane-link",
 		(review) => review.textContent
 	);
 
 	//Shop Address
-	await page.waitForSelector(".QSFF4-text.gm2-body-2:nth-child(1)");
+	try {
+		await page.waitForSelector(".QSFF4-text.gm2-body-2:nth-child(1)", { timeout: 3 });
+	} catch (ex) {
+		console.log('No address found.');
+	}
+
 	let address = await page.$$eval(
 		"#pane > div > div > div > div > div > div > button > div > div > div",
 		(divs) =>
@@ -143,7 +228,7 @@ async function getPageData(url, page) {
 	try {
 		await page.waitForSelector(".HY5zDd", { timeout: 3 });
 	} catch (ex) {
-		console.log('No element found.');
+		console.log('No website found.');
 	}
 
 	const website = await page.$$eval(
@@ -240,11 +325,12 @@ async function getLatLong(url) {
 async function loadWebViewPage(url) {
 	const webview = document.getElementById('gmapWv');
 	await webview.loadURL(url);
-	// webview.removeEventListener('dom-ready', loadWebViewPage);
-	// webview.addEventListener('dom-ready', loadWebViewPage);
+
+	webview.removeEventListener('dom-ready', loadWebViewPage);
+	webview.addEventListener('dom-ready', loadWebViewPage);
 }
 
-async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100) {
+async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 	console.log('Start scrapping data.');
 
 	// Make sure this variable empty
@@ -253,17 +339,21 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 	$('#searchBtn').attr('disabled', 'disabled');
 	$('#stopBtn').removeAttr('disabled');
 	$('#restartBtn').removeAttr('disabled');
-	$('#statusText span#statusTxt').removeClass('text-success').addClass('text-danger').text('Start scraping...');
+	$('span#statusTxt').removeClass('text-success').addClass('text-danger').text('Start scraping...');
 
 	const page = await _puppeteerWrapper.newPage();
 
-	const gmapInitUrl = "https://www.google.com/maps/search/" + searchQuery;
+	const gmapInitUrl = "https://www.google.com/maps/"; // ?q=" + searchQuery.replace(/\s/g, '+');
+	//const gmapInitUrl = "https://www.google.com/maps/search/" + searchQuery.replace(/\s/g, '+');
 
-	await loadWebViewPage(gmapInitUrl);
+	await loadWebViewPage(gmapInitUrl + "?q=" + searchQuery.replace(/\s/g, '+'));
 
 	await page.goto(gmapInitUrl);
 	await page.waitForNavigation({ waitUntil: "domcontentloaded" });
-	await page.waitForSelector('body');
+	await page.waitForSelector('div#gs_lc50 input#searchboxinput');
+
+	await page.type('div#gs_lc50 input#searchboxinput', searchQuery, { delay: 100 });
+	await page.keyboard.press('Enter');
 
 	let allLinks = [];
 	let linkCount = 0;
@@ -281,6 +371,20 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 
 		allLinks.push(...(await getLinks(page)));
 
+		allLinks = allLinks.filter((value, index, self) => {
+			return self.indexOf(value) === index;
+		});
+
+		linkCount = allLinks.length;
+
+		$('span#statusTxt').removeClass('text-danger').addClass('text-warning').text('Gathering links...');
+
+		if (maxLinks == 0) {
+			$('#resultCountText').text(linkCount);
+		} else {
+			$('#resultCountText').text(linkCount > maxLinks ? maxLinks : linkCount);
+		}
+
 		await page.$$eval("button", (elements) => {
 			return Array.from(elements)
 				.find((el) => (el.getAttribute("aria-label") === "Halaman berikutnya" || el.getAttribute("aria-label") === "Next page"))
@@ -288,20 +392,25 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 		});
 
 		await page.waitForNavigation({ waitUntil: "load" });
-
-		linkCount = allLinks.length;
-
-		$('#statusText span#statusTxt').removeClass('text-danger').addClass('text-warning').text('Gathering links...');
-		$('#resultCountText').text(linkCount > maxLinks ? maxLinks : linkCount);
 	}
 
 	$('#resultsTable tbody').html('<tr><td class="text-center" colspan="9"><p>Data sedang diproses...</p></td></tr>');
 
+	let uniqueLinks = allLinks.filter((value, index, self) => {
+		return self.indexOf(value) === index;
+	});
+
+	const linksDb = new JSONdb('data/links-' + searchQuery.replace(/\s/g, '-') + '-' + Date.now() + '.json');
+
+	linksDb.set('data', uniqueLinks);
+
+	$('#validResultCountText').text(uniqueLinks.length);
+
 	let no = 1;
-	for (let link of allLinks) {
+	for (let link of uniqueLinks) {
 		if(maxLinks !== 0 && no > maxLinks) break;
 
-		$('#statusText span#statusTxt').removeClass('text-warning').addClass('text-success').text('Processing "'+link+'"');
+		$('span#statusTxt').removeClass('text-warning').addClass('text-success').text('Processing "'+link+'"');
 
 		const data = await getPageData(link, page);
 
@@ -322,6 +431,8 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 		`);
 		scrapedData.push(data);
 		no++;
+
+		await delay.range(100, 1000);
 	}
 
 	$('#searchBtn').removeAttr('disabled');
@@ -333,7 +444,7 @@ async function GMapScrapper(searchQuery = "toko bunga di bogor", maxLinks = 100)
 
 	await _puppeteerWrapper.cleanup();
 
-	$('#statusText span#statusTxt').removeClass('text-danger').addClass('text-success').text('Done!');
+	$('span#statusTxt').removeClass('text-danger').addClass('text-success').text('Done!');
 }
 
 _ipcRenderer.on('chrome-path-is-set', (event, arg) => {
