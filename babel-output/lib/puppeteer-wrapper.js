@@ -99,12 +99,27 @@ class PuppeteerWrapper {
         }
 
         // Try the default path
-        //this.chromePath = this._getDefaultOsPath();
-        //if (!fs.existsSync(this.chromePath)) {
-        //    this._logger.logError(`Default chrome path does not exists: ${this.chromePath}`);
-        //    this._logger.logError(`Try to set chrome path in settings file: ${this._filePaths.settingsPath()}`);
-        //    return false;
-        //}
+        const defaultPath = this._getDefaultOsPath();
+
+        if (Array.isArray(defaultPath)) {
+            for (let i = 0; i < defaultPath.length; i++) {
+                this.chromePath = defaultPath[i];
+                if (_fs2.default.existsSync(this.chromePath)) {
+                    console.log(this.chromePath);
+                    this.db.set('chrome_path', this.chromePath);
+                    break;
+                }
+            }
+
+            return true;
+        } else {
+            this.chromePath = defaultPath;
+
+            if (_fs2.default.existsSync(this.chromePath)) {
+                this.db.set('chrome_path', this.chromePath);
+                return true;
+            }
+        }
 
         return false;
     }
@@ -115,7 +130,7 @@ class PuppeteerWrapper {
 
     _getDefaultOsPath() {
         if (process.platform === "win32") {
-            return 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
+            return ['C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe', 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', 'C:\\Users\\Hendro\\AppData\\Google\\Chrome\\Application\\chrome.exe'];
         } else {
             return '/usr/bin/google-chrome';
         }

@@ -14,10 +14,10 @@ export class FilePaths {
             } catch(e) {
                 logger.logError(`error while creating directory ${appFolderPath} \n ${e}`);
             }
-            
-            logger.logInfo(`created folder ${appFolderPath}`);
+
+            logger.logInfo(`Created folder ${appFolderPath}`);
         }else {
-            logger.logInfo(`using folder ${appFolderPath}`);
+            logger.logInfo(`Using folder ${appFolderPath}`);
         }
     }
 

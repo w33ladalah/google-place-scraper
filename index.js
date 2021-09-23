@@ -67,12 +67,10 @@ async function createWindow() {
 		mainWindow = null;
 	});
 
-	/*
-	globalShortcut.register('Control+Shift+I', () => {
-	 	dialog.showMessageBox({ title: "GMap Scraper", message: "GMap Scraper by Piranti Soft House"});
-	 	return false;
-	});
-	*/
+	// globalShortcut.register('Control+Shift+I', () => {
+	//  	dialog.showMessageBox({ title: "GMap Scraper", message: "GMap Scraper by Piranti Soft House"});
+	//  	return false;
+	// });
 }
 
 function reloadApp() {
@@ -244,4 +242,11 @@ ipcMain.on('empty-search-query', async function (evt, data) {
 		title: "Pencarian",
 		message: data,
     })
+});
+
+ipcMain.on('scraping-done', async function(evt, data) {
+	dialog.showMessageBox({
+		title: 'GMap Scraper',
+		message: data
+	});
 });
