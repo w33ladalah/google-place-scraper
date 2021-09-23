@@ -26,10 +26,7 @@ let scrapedData = [];
 //#region Main ---------------------------------------------------------------------
 
 async function main() {
-	await _puppeteerWrapper._getSavedPath();
-
 	await setPlatformText();
-	await getNetworkInterface();
 
 	$('#licenseToText').text('Lisensi kepada: ' + _setting.get('user_email'));
 
@@ -110,24 +107,25 @@ async function main() {
 }
 
 async function setPlatformText() {
-	$('#systemInfo').text(os.type() + " " + " " + os.platform() + " " + " " + os.arch() + " " + os.release());
+	$('#systemInfo').text(os.type() + " " + " " + os.platform() + " " + " " + os.arch() + " " + os.release() + " / Mac Address " + await getMacAddress());
 }
 
-async function getNetworkInterface() {
+async function getMacAddress() {
 	const interfaces = os.networkInterfaces();
+	let macAddress = '00:00:00:00:00';
 
 	for (const key in interfaces) {
 		if (interfaces.hasOwnProperty('Wi-Fi') ||
 			interfaces.hasOwnProperty('en1')) {
 			const wirelessNetwork = interfaces[key];
 			wirelessNetwork.forEach(ifcs => {
-				let mac = ifcs.hasOwnProperty('mac') ? ifcs['mac'] : '00:00:00:00:00:00';
-				if (mac != '00:00:00:00:00:00') {
-					return mac;
-				}
+				if (ifcs.hasOwnProperty('mac'))
+					macAddress = ifcs['mac'];
 			});
 		}
 	}
+
+	return macAddress;
 }
 
 async function validateLicense(email, licenseKey) {
@@ -136,7 +134,7 @@ async function validateLicense(email, licenseKey) {
 	if (signature == undefined || signature == '') {
 		console.log('Generate a new signature hash.');
 
-		const signatureParams = os.hostname() + "-" + getNetworkInterface();
+		const signatureParams = os.hostname() + "-" + getMacAddress();
 		const signatureHash = md5(signatureParams);
 
 		_setting.set('signature', signatureHash);
