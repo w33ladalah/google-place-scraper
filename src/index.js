@@ -19,7 +19,6 @@ const _filePaths = new FilePaths(_logger, "gmap-scrapper");
 const _ipcRenderer = electron.ipcRenderer;
 const _puppeteerWrapper = new PuppeteerWrapper(_logger, _filePaths,
 	{ headless: false, width: 900, height: 650 });
-
 let scrapedData = [];
 //#endregion
 
@@ -28,7 +27,7 @@ let scrapedData = [];
 async function main() {
 	await setPlatformText();
 
-	$('#licenseToText').text('Lisensi kepada: ' + _setting.get('user_email'));
+	$('#licenseToText').text(_setting.get('user_email'));
 
 	$('#searchBtn').on('click', async (e) => {
 		e.preventDefault();
@@ -117,7 +116,7 @@ async function getMacAddress() {
 	for (const key in interfaces) {
 		if (interfaces.hasOwnProperty('Wi-Fi') ||
 			interfaces.hasOwnProperty('en1')) {
-			const wirelessNetwork = interfaces[key];
+			const wirelessNetwork = interfaces['Wi-Fi'] || interfaces['en1'];
 			wirelessNetwork.forEach(ifcs => {
 				if (ifcs.hasOwnProperty('mac'))
 					macAddress = ifcs['mac'];
@@ -125,7 +124,7 @@ async function getMacAddress() {
 		}
 	}
 
-	return macAddress;
+	return macAddress.toUpperCase();
 }
 
 async function validateLicense(email, licenseKey) {
@@ -318,7 +317,7 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 	$('#searchBtn').attr('disabled', 'disabled');
 	$('#stopBtn').removeAttr('disabled');
 	$('#restartBtn').removeAttr('disabled');
-	$('span#statusTxt').removeClass('text-success').addClass('text-danger').text('Start scraping...');
+	$('span#statusTxt').removeClass('text-success').addClass('text-danger').html('<img src="res/images/loader.gif" width="20" height="20"> Mulai scraping listing...');
 
 	const page = await _puppeteerWrapper.newPage();
 
@@ -356,11 +355,15 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 				.click()
 		});
 
-		await page.waitForNavigation({ waitUntil: "load" });
+		try {
+			await page.waitForNavigation({ waitUntil: "load", timeout: 3000 });
+		} catch (ex) {
+			break;
+		}
 
 		linkCount = allLinks.length;
 
-		$('span#statusTxt').removeClass('text-danger').addClass('text-warning').text('Gathering links...');
+		$('span#statusTxt').removeClass('text-danger').addClass('text-warning').html('<img src="res/images/loader.gif" width="20" height="20"> Mengumpulkan listing...');
 
 		if (maxLinks == 0) {
 			$('#resultCountText').text(linkCount);
@@ -369,7 +372,9 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 		}
 	}
 
-	$('#resultsTable tbody').html('<tr><td class="text-center" colspan="9"><p>Data sedang diproses...</p></td></tr>');
+	$('#resultsTable tbody').html('<tr><td class="text-center" colspan="9"><p class="m-0 p-0"><img src="res/images/loader.gif" width="20" height="20"> Sedang melakukan validasi listing yang didapat...</p></td></tr>');
+
+	console.log("All Links ", allLinks.length);
 
 	let uniqueLinks = allLinks.filter(function(value, index, self) {
 		return self.indexOf(value) === index;
@@ -379,13 +384,21 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 		uniqueLinks = uniqueLinks.slice(0, maxLinks);
 	}
 
+	$('span#statusTxt').removeClass('text-warning').addClass('text-success').html('<img src="res/images/loader.gif" width="20" height="20"> Validasi listing...');
+
+	await delay(2000);
+
+	console.log("Filtered Links ", uniqueLinks.length);
+
 	$('#resultCountText').text(uniqueLinks.length);
 
 	let no = 1;
+	let successCount = 0;
+	let failedCount = 0;
 	for (let link of uniqueLinks) {
 		if (maxLinks !== 0 && no > maxLinks) break;
 
-		$('span#statusTxt').removeClass('text-warning').addClass('text-success').text('Processing "' + link + '"');
+		$('span#statusTxt').removeClass('text-warning').addClass('text-success').html('<img src="res/images/loader.gif" width="20" height="20"> #'+no+' Memproses "' + link + '"');
 
 		try {
 			const data = await getPageData(link, page);
@@ -406,7 +419,9 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 			`);
 			scrapedData.push(data);
 			no++;
+			successCount++;
 		} catch (ex) {
+			failedCount++;
 			continue;
 		}
 
@@ -422,7 +437,11 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 
 	await _puppeteerWrapper.cleanup();
 
-	$('span#statusTxt').removeClass('text-danger').addClass('text-success').text('Done!');
+	const doneMessage = `Proses scraping dengan kata kunci "${searchQuery}" telah selesai dengan statistik berikut: ${successCount} berhasil, ${failedCount} gagal`;
+
+	$('span#statusTxt').removeClass('text-danger').addClass('text-success').text(doneMessage);
+
+	_ipcRenderer.send('scraping-done', doneMessage);
 }
 
 _ipcRenderer.on('chrome-path-is-set', (event, arg) => {
@@ -435,7 +454,7 @@ _ipcRenderer.on('chrome-path-is-set', (event, arg) => {
 		if (!chromeSet) {
 			_ipcRenderer.send('chrome-not-found');
 		} else {
-			$('span#chromeInfo').addClass('text-success').text(await _puppeteerWrapper._getSavedPath() || await _puppeteerWrapper._getDefaultOsPath());
+			$('span#chromeInfo').addClass('text-success').text(_puppeteerWrapper._getSavedPath());
 		}
 
 		await main();
