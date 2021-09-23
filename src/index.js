@@ -26,7 +26,7 @@ let scrapedData = [];
 //#region Main ---------------------------------------------------------------------
 
 async function main() {
-	// await _puppeteerWrapper._getSavedPath();
+	await _puppeteerWrapper._getSavedPath();
 
 	await setPlatformText();
 	await getNetworkInterface();
@@ -38,7 +38,7 @@ async function main() {
 
 		$('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
 		$('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
-		$('#resultCountText, #validResultCountText').text('0');
+		$('#resultCountText').text('0');
 
 		const searchQuery = $('input#searchBusiness').val();
 		const searchLimit = parseInt($('select#searchLimit').val());
@@ -72,7 +72,7 @@ async function main() {
 
 		$('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
 		$('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
-		$('#resultCountText, #validResultCountText').text('0');
+		$('#resultCountText').text('0');
 
 		await _puppeteerWrapper.cleanup();
 
@@ -94,7 +94,7 @@ async function main() {
 	$('#clearBtn').on('click', async (e) => {
 		$('table tbody').html('<tr><td class="text-center" colspan="9">Hasil pencarian kosong</td></tr>');
 		$('#statusTxt').removeClass('text-danger').removeClass('text-warning').addClass('text-success').text('Ready');
-		$('#resultCountText, #validResultCountText').text('0');
+		$('#resultCountText').text('0');
 
 		await loadWebViewPage("https://www.google.com/maps/");
 	});
@@ -124,10 +124,10 @@ async function getNetworkInterface() {
 				let mac = ifcs.hasOwnProperty('mac') ? ifcs['mac'] : '00:00:00:00:00:00';
 				if (mac != '00:00:00:00:00:00') {
 					return mac;
-                }
+				}
 			});
-        }
-    }
+		}
+	}
 }
 
 async function validateLicense(email, licenseKey) {
@@ -161,7 +161,7 @@ async function validateLicense(email, licenseKey) {
 			_ipcRenderer.send('license-updated', "failed");
 	} catch (ex) {
 		console.log(ex);
-    }
+	}
 }
 
 async function getPageData(url, page) {
@@ -170,45 +170,26 @@ async function getPageData(url, page) {
 	//await loadWebViewPage(url);
 
 	//Shop Name
-	try {
-		await page.waitForSelector(".x3AX1-LfntMc-header-title-title span", { timeout: 3 });
-	} catch (ex) {
-		console.log('No rating found.');
-	}
+	await page.waitForSelector(".x3AX1-LfntMc-header-title-title span");
 	const shopName = await page.$eval(
 		".x3AX1-LfntMc-header-title-title span",
 		(name) => name.textContent
 	);
 
-	try {
-		await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf", { timeout: 3 });
-	} catch (ex) {
-		console.log('No rating found.');
-	}
-
+	await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf");
 	const reviewRating = await page.$eval(
 		".x3AX1-LfntMc-header-title-ij8cu-haAclf span > span > span",
 		(rating) => rating.textContent
 	);
 
-	try {
-		await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf", { timeout: 3 });
-	} catch (ex) {
-		console.log('No review found.');
-	}
-
+	await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf");
 	const reviewCount = await page.$eval(
 		".x3AX1-LfntMc-header-title-ij8cu-haAclf span button.widget-pane-link",
 		(review) => review.textContent
 	);
 
 	//Shop Address
-	try {
-		await page.waitForSelector(".QSFF4-text.gm2-body-2:nth-child(1)", { timeout: 3 });
-	} catch (ex) {
-		console.log('No address found.');
-	}
-
+	await page.waitForSelector(".QSFF4-text.gm2-body-2:nth-child(1)");
 	let address = await page.$$eval(
 		"#pane > div > div > div > div > div > div > button > div > div > div",
 		(divs) =>
@@ -228,7 +209,7 @@ async function getPageData(url, page) {
 	try {
 		await page.waitForSelector(".HY5zDd", { timeout: 3 });
 	} catch (ex) {
-		console.log('No website found.');
+		console.log('No element found.');
 	}
 
 	const website = await page.$$eval(
@@ -371,9 +352,13 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 
 		allLinks.push(...(await getLinks(page)));
 
-		allLinks = allLinks.filter((value, index, self) => {
-			return self.indexOf(value) === index;
+		await page.$$eval("button", (elements) => {
+			return Array.from(elements)
+				.find((el) => (el.getAttribute("aria-label") === "Halaman berikutnya" || el.getAttribute("aria-label") === "Next page"))
+				.click()
 		});
+
+		await page.waitForNavigation({ waitUntil: "load" });
 
 		linkCount = allLinks.length;
 
@@ -384,53 +369,48 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 		} else {
 			$('#resultCountText').text(linkCount > maxLinks ? maxLinks : linkCount);
 		}
-
-		await page.$$eval("button", (elements) => {
-			return Array.from(elements)
-				.find((el) => (el.getAttribute("aria-label") === "Halaman berikutnya" || el.getAttribute("aria-label") === "Next page"))
-				.click()
-		});
-
-		await page.waitForNavigation({ waitUntil: "load" });
 	}
 
 	$('#resultsTable tbody').html('<tr><td class="text-center" colspan="9"><p>Data sedang diproses...</p></td></tr>');
 
-	let uniqueLinks = allLinks.filter((value, index, self) => {
+	let uniqueLinks = allLinks.filter(function(value, index, self) {
 		return self.indexOf(value) === index;
 	});
 
-	const linksDb = new JSONdb('data/links-' + searchQuery.replace(/\s/g, '-') + '-' + Date.now() + '.json');
+	if(maxLinks > 0) {
+		uniqueLinks = uniqueLinks.slice(0, maxLinks);
+	}
 
-	linksDb.set('data', uniqueLinks);
-
-	$('#validResultCountText').text(uniqueLinks.length);
+	$('#resultCountText').text(uniqueLinks.length);
 
 	let no = 1;
 	for (let link of uniqueLinks) {
-		if(maxLinks !== 0 && no > maxLinks) break;
+		if (maxLinks !== 0 && no > maxLinks) break;
 
-		$('span#statusTxt').removeClass('text-warning').addClass('text-success').text('Processing "'+link+'"');
+		$('span#statusTxt').removeClass('text-warning').addClass('text-success').text('Processing "' + link + '"');
 
-		const data = await getPageData(link, page);
+		try {
+			const data = await getPageData(link, page);
+			if (no === 1) $('#resultsTable tbody').empty();
 
-		if (no === 1) $('#resultsTable tbody').empty();
-
-		$('#resultsTable tbody').append(`
-			<tr>
-				<th scope="row">${no}</th>
-				<td>${data.shop}</td>
-				<td>${data.address}</td>
-				<td>${data.phone}</td>
-				<td>${data.website}</td>
-				<td>${data.rating}</td>
-				<td>${data.reviews}</td>
-				<td>${data.latitude}</td>
-				<td>${data.longitude}</td>
-			</tr>
-		`);
-		scrapedData.push(data);
-		no++;
+			$('#resultsTable tbody').append(`
+				<tr>
+					<th scope="row">${no}</th>
+					<td>${data.shop}</td>
+					<td>${data.address}</td>
+					<td>${data.phone}</td>
+					<td>${data.website}</td>
+					<td>${data.rating}</td>
+					<td>${data.reviews}</td>
+					<td>${data.latitude}</td>
+					<td>${data.longitude}</td>
+				</tr>
+			`);
+			scrapedData.push(data);
+			no++;
+		} catch (ex) {
+			continue;
+		}
 
 		await delay.range(100, 1000);
 	}
@@ -458,7 +438,7 @@ _ipcRenderer.on('chrome-path-is-set', (event, arg) => {
 			_ipcRenderer.send('chrome-not-found');
 		} else {
 			$('span#chromeInfo').addClass('text-success').text(await _puppeteerWrapper._getSavedPath() || await _puppeteerWrapper._getDefaultOsPath());
-        }
+		}
 
 		await main();
 	} catch (e) {
