@@ -31,7 +31,7 @@ async function createWindow() {
 			nodeIntegration: true,
 			enableRemoteModule: true,
 			webviewTag: true,
-			devTools: true
+			devTools: false
 		}
 	});
 
@@ -67,10 +67,10 @@ async function createWindow() {
 		mainWindow = null;
 	});
 
-	// globalShortcut.register('Control+Shift+I', () => {
-	//  	dialog.showMessageBox({ title: "GMap Scraper", message: "GMap Scraper by Piranti Soft House"});
-	//  	return false;
-	// });
+	globalShortcut.register('Control+Shift+I', () => {
+	 	dialog.showMessageBox({ title: "GMap Scraper", message: "GMap Scraper by Piranti Soft House"});
+	 	return false;
+	});
 }
 
 function reloadApp() {
