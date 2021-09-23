@@ -1,6 +1,6 @@
 /node_modules
 /saved_recordings
 /.vs
-
+settings.json
 yarn-error.log
 gscraper.code-workspace
