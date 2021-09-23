@@ -113,10 +113,13 @@ async function getMacAddress() {
 	const interfaces = os.networkInterfaces();
 	let macAddress = '00:00:00:00:00';
 
+	console.log(interfaces);
+
 	for (const key in interfaces) {
 		if (interfaces.hasOwnProperty('Wi-Fi') ||
-			interfaces.hasOwnProperty('en1')) {
-			const wirelessNetwork = interfaces['Wi-Fi'] || interfaces['en1'];
+			interfaces.hasOwnProperty('en1') ||
+			interfaces.hasOwnProperty('wlan0') ) {
+			const wirelessNetwork = interfaces['Wi-Fi'] || interfaces['en1'] || interfaces['wlan0'];
 			wirelessNetwork.forEach(ifcs => {
 				if (ifcs.hasOwnProperty('mac'))
 					macAddress = ifcs['mac'];

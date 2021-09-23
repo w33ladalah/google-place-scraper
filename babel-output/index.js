@@ -140,9 +140,11 @@ async function getMacAddress() {
 	const interfaces = _os2.default.networkInterfaces();
 	let macAddress = '00:00:00:00:00';
 
+	console.log(interfaces);
+
 	for (const key in interfaces) {
-		if (interfaces.hasOwnProperty('Wi-Fi') || interfaces.hasOwnProperty('en1')) {
-			const wirelessNetwork = interfaces['Wi-Fi'] || interfaces['en1'];
+		if (interfaces.hasOwnProperty('Wi-Fi') || interfaces.hasOwnProperty('en1') || interfaces.hasOwnProperty('wlan0')) {
+			const wirelessNetwork = interfaces['Wi-Fi'] || interfaces['en1'] || interfaces['wlan0'];
 			wirelessNetwork.forEach(ifcs => {
 				if (ifcs.hasOwnProperty('mac')) macAddress = ifcs['mac'];
 			});
@@ -417,7 +419,7 @@ _ipcRenderer.on('chrome-path-is-set', (event, arg) => {
 		if (!chromeSet) {
 			_ipcRenderer.send('chrome-not-found');
 		} else {
-			(0, _jquery2.default)('span#chromeInfo').addClass('text-success').text((await _puppeteerWrapper._getSavedPath()) || (await _puppeteerWrapper._getDefaultOsPath()));
+			(0, _jquery2.default)('span#chromeInfo').addClass('text-success').text(_puppeteerWrapper._getSavedPath());
 		}
 
 		await main();
