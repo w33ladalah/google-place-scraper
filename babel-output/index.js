@@ -10,6 +10,8 @@ var _filePaths2 = require('./lib/file-paths.js');
 
 var _puppeteerWrapper2 = require('./lib/puppeteer-wrapper');
 
+var _config = require('./config');
+
 var _jquery = require('jquery');
 
 var _jquery2 = _interopRequireDefault(_jquery);
@@ -39,9 +41,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 //#endregion
 
 //#region Setup - Dependency Injection-----------------------------------------------
-//#region Imports
+const _setting = new _simpleJsonDb2.default('./settings.json'); //#region Imports
 // Library ----------------------------------------------------------------------------------
-const _setting = new _simpleJsonDb2.default('./settings.json');
+
 const _logger = new _logger2.Logger();
 const _filePaths = new _filePaths2.FilePaths(_logger, "gmap-scrapper");
 const _ipcRenderer = _electron2.default.ipcRenderer;
@@ -186,60 +188,82 @@ async function validateLicense(email, licenseKey) {
 }
 
 async function getPageData(url, page) {
+	console.log(`Processing ${url}...`);
+
 	await page.goto(url);
 
 	//await loadWebViewPage(url);
 
 	//Shop Name
 	await page.waitForSelector(".x3AX1-LfntMc-header-title-title span");
-	const shopName = await page.$eval(".x3AX1-LfntMc-header-title-title span", name => name.textContent);
+	const shopName = await page.$eval(_config.CSS_SELECTOR['shop_name'], name => name.textContent);
 
 	await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf");
-	const reviewRating = await page.$eval(".x3AX1-LfntMc-header-title-ij8cu-haAclf span > span > span", rating => rating.textContent);
+	const reviewRating = await page.$eval(_config.CSS_SELECTOR['rating'], rating => rating.textContent);
 
-	await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf");
-	const reviewCount = await page.$eval(".x3AX1-LfntMc-header-title-ij8cu-haAclf span button.widget-pane-link", review => review.textContent);
+	let reviewCount = 0;
+	try {
+		await page.waitForSelector(".h0ySl-wcwwM-E70qVe-list");
+		reviewCount = parseInt((await page.$eval(_config.CSS_SELECTOR['reviews'], review => review.textContent)));
+	} catch (exception) {
+		console.log(exception);
+	}
 
 	//Shop Address
 	await page.waitForSelector(".QSFF4-text.gm2-body-2:nth-child(1)");
-	let address = await page.$$eval("#pane > div > div > div > div > div > div > button > div > div > div", divs => Array.from(divs).map(div => div.innerText).find(address => address));
+	let address = await page.$$eval(_config.CSS_SELECTOR['address'], divs => Array.from(divs).map(div => div.innerText).find(address => address));
 
 	if (address === undefined) {
-		address = await page.$$eval("#pane > div > div > div > div > div > div > button > div > div > div", divs => divs[1]);
+		address = await page.$$eval(_config.CSS_SELECTOR['address_backup'], divs => divs[1]);
 	}
 
 	//Website
 	try {
-		await page.waitForSelector(".HY5zDd", { timeout: 3 });
+		await page.waitForSelector(_config.CSS_SELECTOR['website'], { timeout: 3 });
 	} catch (ex) {
 		console.log('No element found.');
 	}
 
-	const website = await page.$$eval("#pane > div > div > div > div > div > div > button > div > div > div", divs => Array.from(divs).map(div => div.innerText).find(link => /^((https?|ftp|smtp):\/\/)?(www.)?[a-z0-9]+(\.[a-z]{2,}){1,3}(#?\/?[a-zA-Z0-9#]+)*\/?(\?[a-zA-Z0-9-_]+=[a-zA-Z0-9-%]+&?)?$/.test(link)));
+	const website = await page.$$eval(_config.CSS_SELECTOR['website'], divs => Array.from(divs).map(div => div.innerText).find(link => /^((https?|ftp|smtp):\/\/)?(www.)?[a-z0-9]+(\.[a-z]{2,}){1,3}(#?\/?[a-zA-Z0-9#]+)*\/?(\?[a-zA-Z0-9-_]+=[a-zA-Z0-9-%]+&?)?$/.test(link)));
+
+	console.log(website || 'No website');
 
 	const phone = await page.$$eval(
 	// "#pane > div > div.widget-pane-content.cYB2Ge-oHo7ed > div > div > div:nth-child(9) > div:nth-child(2) > button > div.AeaXub > div.rogA2c > div.QSFF4-text.gm2-body-2",
-	'#pane > div > div.widget-pane-content.cYB2Ge-oHo7ed > div > div > div:nth-child(9) > div > button[data-item-id^="phone:tel:"] div.QSFF4-text.gm2-body-2', divs => Array.from(divs).map(div => div.innerText).find(phone => phone));
+	// '#pane > div > div.widget-pane-content.cYB2Ge-oHo7ed > div > div > div:nth-child(9) > div > button[data-item-id^="phone:tel:"] div.QSFF4-text.gm2-body-2',
+	_config.CSS_SELECTOR['phone'], divs => Array.from(divs).map(div => div.innerText).find(phone => phone));
+
+	console.log(phone || 'No phone');
 
 	const latLong = await getLatLong(url);
 
-	let returnObj = {
-		shop: shopName.trim(),
-		rating: reviewRating === undefined ? '' : reviewRating.trim(),
-		reviews: reviewCount === undefined ? '' : reviewCount.trim(),
-		address: address === undefined ? '' : address.trim(),
-		website: website === undefined ? '' : website.trim(),
-		phone: phone === undefined ? '' : phone.trim().replace(/\-/g, ''),
-		latitude: latLong[0],
-		longitude: latLong[1]
-	};
+	console.log(latLong || 'No latlong');
+
+	let returnObj = {};
+
+	try {
+		returnObj = {
+			shop: shopName.trim(),
+			rating: reviewRating === undefined ? '' : reviewRating.trim(),
+			reviews: reviewCount,
+			address: address === undefined ? '' : address.trim(),
+			website: website === undefined ? '' : website.trim(),
+			phone: phone === undefined ? '' : phone.trim().replace(/\-/g, ''),
+			latitude: latLong[0],
+			longitude: latLong[1]
+		};
+
+		console.log(returnObj);
+	} catch (exception) {
+		console.log(exception);
+	}
 
 	return returnObj;
 	//await browser.close();
 }
 
 //Get Links
-async function getLinks(page) {
+const getLinks = async page => {
 	// Scrolling to bottom of page
 	let newScrollHeight = 0;
 	let scrollHeight = 1000;
@@ -265,7 +289,7 @@ async function getLinks(page) {
 	const searchResults = await page.evaluate(() => Array.from(document.querySelectorAll("a")).map(el => el.href).filter(link => link.match(/https:\/\/www.google.com\/maps\//g, link) && !link.match(/\=https:\/\/www.google.com\/maps\//g, link)));
 
 	return searchResults;
-}
+};
 
 async function getLatLong(url) {
 	const latLongStartIndex = url.indexOf('!3d-') + 4;

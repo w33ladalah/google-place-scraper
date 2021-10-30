@@ -1,7 +1,7 @@
 {
   "name": "gmap-scraper",
-  "version": "1.0.1",
-  "description": "Scrap Google Map search results using Node.js + Electron",
+  "version": "1.1.0",
+  "description": "A desktop application to scrap Google Map search results and export to excel file.",
   "main": "index.js",
   "scripts": {
     "babel_build": "babel --source-maps --out-dir=babel-output src",

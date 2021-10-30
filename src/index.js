@@ -4,6 +4,7 @@ import electron from 'electron';
 import { Logger } from './lib/logger';
 import { FilePaths } from './lib/file-paths.js';
 import { PuppeteerWrapper } from './lib/puppeteer-wrapper';
+import { CSS_SELECTOR as cssSelector } from './config';
 import $ from 'jquery';
 import JSONdb from 'simple-json-db';
 import axios from 'axios';
@@ -165,6 +166,8 @@ async function validateLicense(email, licenseKey) {
 }
 
 async function getPageData(url, page) {
+	console.log(`Processing ${url}...`);
+
 	await page.goto(url);
 
 	//await loadWebViewPage(url);
@@ -172,26 +175,31 @@ async function getPageData(url, page) {
 	//Shop Name
 	await page.waitForSelector(".x3AX1-LfntMc-header-title-title span");
 	const shopName = await page.$eval(
-		".x3AX1-LfntMc-header-title-title span",
+		cssSelector['shop_name'],
 		(name) => name.textContent
 	);
 
 	await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf");
 	const reviewRating = await page.$eval(
-		".x3AX1-LfntMc-header-title-ij8cu-haAclf span > span > span",
+		cssSelector['rating'],
 		(rating) => rating.textContent
 	);
 
-	await page.waitForSelector(".x3AX1-LfntMc-header-title-ij8cu-haAclf");
-	const reviewCount = await page.$eval(
-		".x3AX1-LfntMc-header-title-ij8cu-haAclf span button.widget-pane-link",
-		(review) => review.textContent
-	);
+	let reviewCount = 0;
+	try {
+		await page.waitForSelector(".h0ySl-wcwwM-E70qVe-list");
+		reviewCount = parseInt(await page.$eval(
+			cssSelector['reviews'],
+			(review) => review.textContent
+		));
+	} catch(exception) {
+		console.log(exception);
+	}
 
 	//Shop Address
 	await page.waitForSelector(".QSFF4-text.gm2-body-2:nth-child(1)");
 	let address = await page.$$eval(
-		"#pane > div > div > div > div > div > div > button > div > div > div",
+		cssSelector['address'],
 		(divs) =>
 			Array.from(divs)
 				.map((div) => div.innerText)
@@ -200,20 +208,20 @@ async function getPageData(url, page) {
 
 	if (address === undefined) {
 		address = await page.$$eval(
-			"#pane > div > div > div > div > div > div > button > div > div > div",
+			cssSelector['address_backup'],
 			(divs) => divs[1]
 		);
 	}
 
 	//Website
 	try {
-		await page.waitForSelector(".HY5zDd", { timeout: 3 });
+		await page.waitForSelector(cssSelector['website'], { timeout: 3 });
 	} catch (ex) {
 		console.log('No element found.');
 	}
 
 	const website = await page.$$eval(
-		"#pane > div > div > div > div > div > div > button > div > div > div",
+		cssSelector['website'],
 		(divs) =>
 			Array.from(divs)
 				.map((div) => div.innerText)
@@ -224,34 +232,49 @@ async function getPageData(url, page) {
 				)
 	);
 
+	console.log(website || 'No website');
+
 	const phone = await page.$$eval(
 		// "#pane > div > div.widget-pane-content.cYB2Ge-oHo7ed > div > div > div:nth-child(9) > div:nth-child(2) > button > div.AeaXub > div.rogA2c > div.QSFF4-text.gm2-body-2",
-		'#pane > div > div.widget-pane-content.cYB2Ge-oHo7ed > div > div > div:nth-child(9) > div > button[data-item-id^="phone:tel:"] div.QSFF4-text.gm2-body-2',
+		// '#pane > div > div.widget-pane-content.cYB2Ge-oHo7ed > div > div > div:nth-child(9) > div > button[data-item-id^="phone:tel:"] div.QSFF4-text.gm2-body-2',
+		cssSelector['phone'],
 		(divs) =>
 			Array.from(divs)
 				.map((div) => div.innerText)
 				.find((phone) => phone)
 	);
 
+	console.log(phone || 'No phone');
+
 	const latLong = await getLatLong(url);
 
-	let returnObj = {
-		shop: shopName.trim(),
-		rating: reviewRating === undefined ? '' : reviewRating.trim(),
-		reviews: reviewCount === undefined ? '' : reviewCount.trim(),
-		address: address === undefined ? '' : address.trim(),
-		website: website === undefined ? '' : website.trim(),
-		phone: phone === undefined ? '' : phone.trim().replace(/\-/g, ''),
-		latitude: latLong[0],
-		longitude: latLong[1],
-	};
+	console.log(latLong || 'No latlong');
+
+	let returnObj = {};
+
+	try {
+		returnObj = {
+			shop: shopName.trim(),
+			rating: reviewRating === undefined ? '' : reviewRating.trim(),
+			reviews: reviewCount,
+			address: address === undefined ? '' : address.trim(),
+			website: website === undefined ? '' : website.trim(),
+			phone: phone === undefined ? '' : phone.trim().replace(/\-/g, ''),
+			latitude: latLong[0],
+			longitude: latLong[1],
+		};
+
+		console.log(returnObj);
+	} catch (exception) {
+		console.log(exception);
+	}
 
 	return returnObj;
 	//await browser.close();
 }
 
 //Get Links
-async function getLinks(page) {
+const getLinks = async (page) => {
 	// Scrolling to bottom of page
 	let newScrollHeight = 0;
 	let scrollHeight = 1000;

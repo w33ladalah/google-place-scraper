@@ -2,6 +2,7 @@ const electron = require('electron');
 const { globalShortcut } = require('electron');
 const XLSX = require('xlsx');
 const axios = require('axios');
+const https = require('https');
 
 // Module to control application life.
 const app = electron.app;
@@ -13,6 +14,9 @@ const path = require('path');
 const url = require('url');
 const JSONdb = require('simple-json-db');
 const dbSetting = new JSONdb('./settings.json');
+const agent = new https.Agent({
+	rejectUnauthorized: false
+});
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -31,7 +35,7 @@ async function createWindow() {
 			nodeIntegration: true,
 			enableRemoteModule: true,
 			webviewTag: true,
-			devTools: false
+			devTools: true
 		}
 	});
 
@@ -83,7 +87,7 @@ async function checkForUpdate() {
 	const checkForUpdateUrl = `${baseUrl}/check-for-update`;
 
 	try {
-		const response = await axios.get(checkForUpdateUrl);
+		const response = await axios.get(checkForUpdateUrl, { httpsAgent: agent });
 		const updateData = response.data;
 		const status = updateData.status;
 		const version = updateData.version || '1.0.0';
@@ -110,7 +114,7 @@ async function checkForLicense() {
 	const licenseServerUrl = `${baseUrl}/license-key/get?email=${email}&key=${licenseKey}&signature_hash=${signature}`;
 
 	try {
-		const response = await axios.get(licenseServerUrl);
+		const response = await axios.get(licenseServerUrl, { httpsAgent: agent });
 		const licenseData = response.data;
 		const status = licenseData.status;
 
