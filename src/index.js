@@ -398,7 +398,7 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 
 		await page.$$eval("button", (elements) => {
 			return Array.from(elements)
-				.find((el) => (el.getAttribute("aria-label") === "Halaman berikutnya" || el.getAttribute("aria-label") === "Next page"))
+				.find((el) => (el.getAttribute("jsaction") === "pane.paginationSection.nextPage" || el.getAttribute("aria-label") === "Next page"))
 				.click()
 		});
 
