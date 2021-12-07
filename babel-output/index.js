@@ -267,7 +267,8 @@ const getLinks = async page => {
 	// Scrolling to bottom of page
 	let newScrollHeight = 0;
 	let scrollHeight = 1000;
-	let divSelector = "#pane > div > div > div > div > div:nth-child(4) > div";
+	// let divSelector = "#pane > div > div > div > div > div:nth-child(4) > div";
+	let divSelector = '#pane > div > div > div > div > div > div[role="region"]:nth-child(1)';
 
 	while (true) {
 		await page.waitForSelector(divSelector);

@@ -107,12 +107,11 @@ class PuppeteerWrapper {
         });
 
         await client.on('Network.requestIntercepted', async e => {
-            console.log('EVENT INFO: ');
-            console.log(e.interceptionId);
-            console.log(e.resourceType);
-            console.log(e.isNavigationRequest);
+            // console.log('EVENT INFO: ');
+            // console.log(e.interceptionId);
+            // console.log(e.resourceType);
+            // console.log(e.isNavigationRequest);
 
-            // pass all network requests (not part of a question)
             await client.send('Network.continueInterceptedRequest', {
                 interceptionId: e.interceptionId
             });
