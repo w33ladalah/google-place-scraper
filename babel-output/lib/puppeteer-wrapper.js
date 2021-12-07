@@ -62,6 +62,7 @@ class PuppeteerWrapper {
             executablePath: this.chromePath,
             args
         });
+        // console.log(await this.browser.userAgent());
         this._logger.logInfo("Puppeteer initialized");
         return true;
     }
@@ -76,17 +77,47 @@ class PuppeteerWrapper {
 
         const page = await this.browser.newPage();
 
-        page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36');
+        // page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36');
+
+        await this._intercept(page);
 
         if (this._options.width) {
             await page._client.send('Emulation.clearDeviceMetricsOverride');
         }
+
+        this.browser.on('targetcreated', async target => {
+            const page = await target.page();
+            this._intercept(page);
+        });
+
         return page;
     }
 
     //#endregion
 
     //#region Helpers
+    async _intercept(page) {
+        const client = await page.target().createCDPSession();
+
+        await client.send('Network.enable');
+
+        // added configuration
+        await client.send('Network.setRequestInterception', {
+            patterns: [{ urlPattern: '*' }]
+        });
+
+        await client.on('Network.requestIntercepted', async e => {
+            console.log('EVENT INFO: ');
+            console.log(e.interceptionId);
+            console.log(e.resourceType);
+            console.log(e.isNavigationRequest);
+
+            // pass all network requests (not part of a question)
+            await client.send('Network.continueInterceptedRequest', {
+                interceptionId: e.interceptionId
+            });
+        });
+    }
 
     async _setChromePath() {
         this.chromePath = await this._getSavedPath();

@@ -347,12 +347,32 @@ async function GMapScrapper(searchQuery = "", maxLinks = 100) {
 
 	const page = await _puppeteerWrapper.newPage();
 
-	const gmapInitUrl = "https://www.google.com/maps/"; // ?q=" + searchQuery.replace(/\s/g, '+');
-	//const gmapInitUrl = "https://www.google.com/maps/search/" + searchQuery.replace(/\s/g, '+');
+	// const openingUrl = "https://gmap-scraper.com/"; // ?q=" + searchQuery.replace(/\s/g, '+');
+
+	// await page.goto(openingUrl, { waitUntil: 'networkidle0' });
+
+	const gmapInitUrl = "https://www.google.com/maps?t=" + Date.now(); // + searchQuery.replace(/\s/g, '+');
 
 	await loadWebViewPage(gmapInitUrl + "?q=" + searchQuery.replace(/\s/g, '+'));
 
-	await page.goto(gmapInitUrl);
+	// await page.setRequestInterception(true);
+
+	page.on('response', response => {
+		const status = response.status();
+		console.log(status)
+		if ((status >= 300) && (status <= 399)) {
+			console.log('Redirect from', response.url(), 'to', response.headers()['location'])
+		}
+	})
+
+	try {
+		await page.goto(gmapInitUrl, { waitUntil: 'networkidle0' });
+	} catch (ex) {
+		console.log(ex);
+		await delay(800);
+		await page.reload({ waitUntil: ["networkidle0", "domcontentloaded"] });
+	}
+
 	await page.waitForNavigation({ waitUntil: "domcontentloaded" });
 	await page.waitForSelector('div#gs_lc50 input#searchboxinput');
 
